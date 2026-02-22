@@ -1,0 +1,82 @@
+[gd_scene format=3 uid="uid://dpbxeeslo572q"]
+
+[ext_resource type="Texture2D" uid="uid://4s5w15x6s58m" path="res://assets/kenney_prototype-textures/PNG/Dark/texture_09.png" id="1_1vwu3"]
+[ext_resource type="Texture2D" uid="uid://x3isr0fvrpb8" path="res://assets/kenney_prototype-textures/PNG/Green/texture_08.png" id="2_bo7bi"]
+
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_chifq"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bo7bi"]
+albedo_texture = ExtResource("1_1vwu3")
+uv1_scale = Vector3(0.25, 0.25, 0.25)
+uv1_triplanar = true
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1vwu3"]
+size = Vector2(50, 50)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1vwu3"]
+height = 7.5
+radius = 1.2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_615bs"]
+albedo_texture = ExtResource("2_bo7bi")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_gl1jw"]
+top_radius = 1.25
+bottom_radius = 1.25
+height = 7.5
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_bo7bi"]
+
+[sub_resource type="Sky" id="Sky_615bs"]
+sky_material = SubResource("ProceduralSkyMaterial_bo7bi")
+
+[sub_resource type="Environment" id="Environment_gl1jw"]
+background_mode = 2
+sky = SubResource("Sky_615bs")
+
+[node name="WorldForest" type="Node2D" unique_id=1623922214]
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1059422202]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=7525594]
+shape = SubResource("WorldBoundaryShape3D_chifq")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=830772234]
+material_override = SubResource("StandardMaterial3D_bo7bi")
+mesh = SubResource("PlaneMesh_1vwu3")
+
+[node name="Tree" type="StaticBody3D" parent="." unique_id=122946789]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.667005, -0.037333965, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tree" unique_id=1240883012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8361053, 0)
+shape = SubResource("CylinderShape3D_1vwu3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tree/CollisionShape3D" unique_id=1339994314]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07981682, 0)
+material_override = SubResource("StandardMaterial3D_615bs")
+mesh = SubResource("CylinderMesh_gl1jw")
+
+[node name="Tree2" type="StaticBody3D" parent="." unique_id=772320030]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.088416, -0.037333965, 8.279091)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tree2" unique_id=1149833860]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8361053, 0)
+shape = SubResource("CylinderShape3D_1vwu3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tree2/CollisionShape3D" unique_id=2056775976]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07981682, 0)
+material_override = SubResource("StandardMaterial3D_615bs")
+mesh = SubResource("CylinderMesh_gl1jw")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=583773023]
+transform = Transform3D(1, 0, 0, 0, 0.9441523, 0.32950938, 0, -0.32950938, 0.9441523, 0, 5.6924973, 27.135136)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=183869311]
+environment = SubResource("Environment_gl1jw")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="WorldEnvironment" unique_id=911563268]
+transform = Transform3D(1, 0, 0, 0, 0.81010324, 0.5862876, 0, -0.5862876, 0.81010324, 0, 12.780451, 31.100945)
+shadow_enabled = true

@@ -1,0 +1,86 @@
+[gd_scene format=3 uid="uid://k6mcorwk6nxq"]
+
+[ext_resource type="Script" uid="uid://chg6jptqg2sx1" path="res://scenes/player/player.gd" id="1_8afob"]
+[ext_resource type="Shader" uid="uid://wi1n7ogdvqn1" path="res://shaders/psx.gdshader" id="2_dovo2"]
+[ext_resource type="Script" uid="uid://buwkir1viskug" path="res://scenes/player/quad_resize.gd" id="3_gmlin"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_x7p2l"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_8afob"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_x7p2l"]
+top_radius = 0.1
+bottom_radius = 0.4
+height = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_gmlin"]
+render_priority = 0
+shader = ExtResource("2_dovo2")
+shader_parameter/enabled = true
+shader_parameter/dithering = true
+shader_parameter/colors = 12
+shader_parameter/dither_size = 2
+
+[sub_resource type="QuadMesh" id="QuadMesh_8afob"]
+material = SubResource("ShaderMaterial_gmlin")
+size = Vector2(3, 2)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_8afob"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="Player" type="CharacterBody3D" unique_id=1633133632]
+script = ExtResource("1_8afob")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=981196690]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_x7p2l")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CollisionShape3D" unique_id=1306409986]
+layers = 2
+mesh = SubResource("CapsuleMesh_8afob")
+
+[node name="Head" type="Node3D" parent="." unique_id=754328646]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Head" unique_id=227085375]
+transform = Transform3D(4.371139e-08, 1, -8.742278e-08, 1, -4.371139e-08, 0, -3.821371e-15, -8.742278e-08, -1, 0.21437211, 0.5, 0)
+layers = 2
+mesh = SubResource("CylinderMesh_x7p2l")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="Head" unique_id=649337633]
+unique_name_in_owner = true
+transform = Transform3D(0.25881904, 3.239805e-08, -0.9659258, 0.9659258, -4.222196e-08, 0.25881904, -3.239805e-08, -1, -4.222196e-08, 0.4, 1.6, 0)
+collision_mask = 2
+spring_length = 2.0
+
+[node name="Camera3D" type="Camera3D" parent="Head/SpringArm3D" unique_id=1004504828]
+unique_name_in_owner = true
+transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+fov = 90.0
+near = 0.5
+
+[node name="PSXShaderOverlay" type="MeshInstance3D" parent="Head/SpringArm3D/Camera3D" unique_id=1775239309 node_paths=PackedStringArray("camera")]
+transform = Transform3D(1, -3.5527137e-15, 7.1054274e-15, 0, 1, -4.776714e-16, 0, -4.776713e-16, 1, -2.9276785e-08, 0.008426666, -0.6911439)
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_8afob")
+script = ExtResource("3_gmlin")
+camera = NodePath("..")
+distance_from_camera = 1.0
+
+[node name="Nameplate" type="Label3D" parent="." unique_id=417190049]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.213971, 0)
+billboard = 2
+no_depth_test = true
+text = "Peer ID"
+outline_size = 8
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1069250703]
+replication_config = SubResource("SceneReplicationConfig_8afob")
