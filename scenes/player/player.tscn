@@ -35,6 +35,7 @@ properties/1/replication_mode = 1
 
 [node name="Player" type="CharacterBody3D" unique_id=1633133632]
 script = ExtResource("1_8afob")
+sensitivity = null
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=981196690]
 unique_name_in_owner = true
@@ -79,8 +80,75 @@ unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.213971, 0)
 billboard = 2
 no_depth_test = true
+render_priority = 1
+outline_render_priority = 1
 text = "Peer ID"
-outline_size = 8
+outline_size = 2
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1069250703]
 replication_config = SubResource("SceneReplicationConfig_8afob")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2020977515]
+
+[node name="Menu" type="Control" parent="CanvasLayer" unique_id=613364625]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/Menu" unique_id=893427176]
+layout_mode = 1
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Menu/PanelContainer" unique_id=163517361]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="ButtonLeave" type="Button" parent="CanvasLayer/Menu/PanelContainer/MarginContainer" unique_id=1390044350]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Quit"
+
+[node name="HUD" type="Control" parent="CanvasLayer" unique_id=609930420]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/HUD" unique_id=207517401]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -96.0
+offset_bottom = 63.0
+grow_horizontal = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/HUD/PanelContainer" unique_id=1319415144]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/HUD/PanelContainer/MarginContainer" unique_id=1458584670]
+layout_mode = 2
+
+[node name="SpeedLabel" type="Label" parent="CanvasLayer/HUD/PanelContainer/MarginContainer/VBoxContainer" unique_id=2014644539]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Speed:"
+
+[node name="DashReportLabel" type="Label" parent="CanvasLayer/HUD/PanelContainer/MarginContainer/VBoxContainer" unique_id=851008854]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Dash:"
