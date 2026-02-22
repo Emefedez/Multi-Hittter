@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://chg6jptqg2sx1" path="res://scenes/player/player.gd" id="1_8afob"]
 [ext_resource type="Shader" uid="uid://wi1n7ogdvqn1" path="res://shaders/psx.gdshader" id="2_dovo2"]
 [ext_resource type="Script" uid="uid://buwkir1viskug" path="res://scenes/player/quad_resize.gd" id="3_gmlin"]
+[ext_resource type="Shader" uid="uid://bqf4w31qswtlv" path="res://shaders/speed_lines.gdshader" id="4_lvxji"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_x7p2l"]
 
@@ -32,6 +33,25 @@ properties/0/replication_mode = 1
 properties/1/path = NodePath(".:rotation")
 properties/1/spawn = true
 properties/1/replication_mode = 1
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_p47bc"]
+noise_type = 5
+frequency = 0.2
+fractal_type = 0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_75vfm"]
+noise = SubResource("FastNoiseLite_p47bc")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0owmy"]
+shader = ExtResource("4_lvxji")
+shader_parameter/noise = SubResource("NoiseTexture2D_75vfm")
+shader_parameter/line_color = Color(1, 1, 1, 1)
+shader_parameter/line_count = 1.8000000268221599
+shader_parameter/line_density = 0.366000017385
+shader_parameter/line_faloff = 1.0
+shader_parameter/mask_size = 0.2870000136325
+shader_parameter/mask_edge = 0.5
+shader_parameter/animation_speed = 20.0
 
 [node name="Player" type="CharacterBody3D" unique_id=1633133632]
 script = ExtResource("1_8afob")
@@ -151,3 +171,23 @@ text = "Speed:"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Dash:"
+
+[node name="SpeedLines" type="Control" parent="." unique_id=2048160648]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SpeedLines" type="ColorRect" parent="SpeedLines" unique_id=2018692213]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_0owmy")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

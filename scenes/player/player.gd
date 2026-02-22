@@ -11,6 +11,7 @@ extends CharacterBody3D
 
 @onready var speed_label: Label = %SpeedLabel
 @onready var dash_label: Label = %DashReportLabel
+@onready var speed_lines: ColorRect = %SpeedLines
 
 const START_SPEED = 6.0
 const MAX_SPEED_RUN = 10.0
@@ -71,10 +72,13 @@ func _ready():
 		print(name, " is auth\n")
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		button_leave.pressed.connect(func(): Network.leave_server())
+
 	else:
 		set_process(false)
 		set_physics_process(false)
 		print(name, " is not auth\n")
+		speed_lines.hide()
+		$CanvasLayer.hide()
 		return
 	
 func _unhandled_input(event: InputEvent) -> void:
@@ -98,8 +102,22 @@ func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
 		return
 		
+	# Aumentamos un poco el multiplicador para que las líneas sean más intensas
+	var density = velocity.length() * 0.025 
+	
+	if speed_lines.material:
+		speed_lines.material.set_shader_parameter("line_density", density)
+		
+	# Ocultamos el nodo gráficamente si vamos muy lento para ahorrar recursos,
+	# y lo mostramos automáticamente en cuanto empezamos a ganar velocidad.
+	if velocity.length() < 12.0:
+		speed_lines.hide()
+	else:
+		speed_lines.show()
+
 	if Input.is_action_just_pressed("dash"):
 		_attempt_dash()
+
 		
 	if dash_timer > 0:
 		# when dashing
@@ -149,3 +167,4 @@ func _physics_process(delta: float) -> void:
 	dash_label.text = "CAN DASH" if dash_possible() else "NO DASH"
 
 	move_and_slide()
+	
