@@ -35,7 +35,6 @@ properties/1/replication_mode = 1
 
 [node name="Player" type="CharacterBody3D" unique_id=1633133632]
 script = ExtResource("1_8afob")
-sensitivity = null
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=981196690]
 unique_name_in_owner = true

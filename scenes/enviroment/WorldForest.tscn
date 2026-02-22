@@ -36,6 +36,10 @@ sky_material = SubResource("ProceduralSkyMaterial_bo7bi")
 background_mode = 2
 sky = SubResource("Sky_615bs")
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_bo7bi"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_615bs"]
+
 [node name="WorldForest" type="Node2D" unique_id=1623922214]
 
 [node name="Floor" type="StaticBody3D" parent="." unique_id=1059422202]
@@ -80,3 +84,15 @@ environment = SubResource("Environment_gl1jw")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="WorldEnvironment" unique_id=911563268]
 transform = Transform3D(1, 0, 0, 0, 0.81010324, 0.5862876, 0, -0.5862876, 0.81010324, 0, 12.780451, 31.100945)
 shadow_enabled = true
+
+[node name="Wall" type="StaticBody3D" parent="." unique_id=1946404191]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6088772, -0.037333965, 8.279091)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Wall" unique_id=67541486]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 1, 0, 3.8361053, 0)
+shape = SubResource("BoxShape3D_bo7bi")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Wall/CollisionShape3D" unique_id=975811113]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 1, 0.0050706863, -0.0076179504, 0)
+material_override = SubResource("StandardMaterial3D_615bs")
+mesh = SubResource("BoxMesh_615bs")
