@@ -42,7 +42,47 @@ var ctrl_bounce: bool = false
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(int(name))
+###########################################################################
 
+func _push_away_rigid_bodies():
+	for i in get_slide_collision_count():
+		var c = get_slide_collision(i)
+		var collider = c.get_collider()
+		
+		if collider is RigidBody3D:
+			var normal = c.get_normal()
+			
+			# 1. SI ESTAMOS CAYENDO SOBRE LA PELOTA (El jugador cae hacia abajo y toca la parte superior)
+			if velocity.y < 0 and normal.y > 0.5:
+				# Obtenemos hacia donde mira el jugador (-Z es el frente en Godot)
+				var forward_dir = -transform.basis.z
+				
+				# Creamos un vector que apunte al frente y ligeramente hacia arriba para que la pelota bote
+				var bounce_dir = (forward_dir + Vector3(0, 0.8, 0)).normalized()
+				
+				# Aplicamos el impulso para que la pelota salga disparada
+				var bounce_force = collider.mass * 6.0 
+				collider.apply_central_impulse(bounce_dir * bounce_force)
+				
+				# Hacemos que el jugador rebote un poco hacia arriba al pisarla
+				velocity.y = 3.0 
+				continue # Terminamos aquí este frame para no mezclar fuerzas
+			
+			# 2. EMPUJE HORIZONTAL NORMAL (Caminando o haciendo Dash)
+			var push_dir = -normal
+			push_dir.y = 0
+			
+			if push_dir.length() > 0.01:
+				push_dir = push_dir.normalized()
+				
+				var player_v = velocity.dot(push_dir)
+				var rb_v = collider.linear_velocity.dot(push_dir)
+				var velocity_diff = player_v - rb_v
+				
+				if velocity_diff > 0:
+					var push_force = velocity_diff * collider.mass * 0.2
+					collider.apply_central_impulse(push_dir * push_force)
+			
 ############################################################################
 func dash_possible() -> bool:
 	return Time.get_ticks_msec() - last_dash_ms > dash_cooldown_ms
@@ -66,7 +106,7 @@ func _attempt_dash() -> void:
 	dash_direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
 	if dash_direction == Vector3.ZERO:
-		dash_direction = -transform.basis.z
+		dash_direction = transform.basis.x
 		
 	velocity.y = 0.0
 ############################################################################
@@ -135,20 +175,32 @@ func _physics_process(delta: float) -> void:
 		dash_timer -= delta
 		
 		if is_on_wall() and can_bounce:
-			# --- MODIFICADO: Física de rebote real ---
-			# Obtenemos la normal de la pared (hacia dónde apunta la pared)
-			var wall_normal = get_wall_normal()
+			var valid_wall_normal = Vector3.ZERO
+			var found_valid_wall = false
 			
-			# Usamos la función bounce() para calcular el rebote matemáticamente correcto
-			dash_direction = dash_direction.bounce(wall_normal)
+			# Revisamos las colisiones del último frame para encontrar la pared real, ignorando la pelota
+			for i in get_slide_collision_count():
+				var collision = get_slide_collision(i)
+				var collider = collision.get_collider()
+				
+				# Filtramos cualquier RigidBody3D (como la pelota)
+				if not collider is RigidBody3D:
+					var n = collision.get_normal()
+					# Comprobamos que la superficie sea vertical (pared). 
+					# Un valor absoluto de 'y' menor a 0.7 equivale aprox. a ángulos mayores de 45 grados.
+					if abs(n.y) < 0.7: 
+						valid_wall_normal = n
+						found_valid_wall = true
+						break
 			
-			# Opcional: Para evitar ganar altura rara en paredes inclinadas, 
-			# aplanamos el rebote en el eje Y
-			dash_direction.y = 0 
-			dash_direction = dash_direction.normalized()
-			# -----------------------------------------
-			if speed >= 25:
-				can_bounce = false
+			# Si realmente chocamos contra una pared válida, aplicamos el rebote matemático
+			if found_valid_wall:
+				dash_direction = dash_direction.bounce(valid_wall_normal)
+				dash_direction.y = 0 
+				dash_direction = dash_direction.normalized()
+				
+				if speed >= 25:
+					can_bounce = false
 			
 		
 		velocity.x = dash_direction.x * DASH_SPEED
@@ -193,5 +245,6 @@ func _physics_process(delta: float) -> void:
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	speed_label.text = "Speed: " + str(snapped(horizontal_speed, 0.1))
 	dash_label.text = "CAN DASH" if dash_possible() else "NO DASH"
-
+	
 	move_and_slide()
+	_push_away_rigid_bodies()

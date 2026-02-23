@@ -101,4 +101,5 @@ material_override = SubResource("StandardMaterial3D_615bs")
 mesh = SubResource("BoxMesh_615bs")
 
 [node name="Ball" parent="." unique_id=1421737233 instance=ExtResource("3_615bs")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5722375, 0)
+transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, -11.49501, 0.5722375, 0)
+mass = 0.4
