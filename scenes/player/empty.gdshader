@@ -1,14 +1,11 @@
 shader_type spatial;
 
-void vertex() {
-	// Called for every vertex the material is visible on.
-}
+// Color del flash (blanco por defecto) y su intensidad (alpha)
+uniform vec4 flash_color : source_color = vec4(1.0, 1.0, 1.0, 0.0);
 
 void fragment() {
-	// Called for every pixel the material is visible on.
+	// Aquí iría tu lógica de textura normal. 
+	// Por ahora, mezclamos el color base con el color del flash.
+	// Si el alpha de flash_color es 0, el modelo se ve normal.
+	ALBEDO = mix(ALBEDO, flash_color.rgb, flash_color.a);
 }
-
-//void light() {
-//	// Called for every pixel for every light affecting the material.
-//	// Uncomment to replace the default light processing function with this one.
-//}

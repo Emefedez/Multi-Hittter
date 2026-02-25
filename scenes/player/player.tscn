@@ -22,6 +22,7 @@ shader_parameter/color = Color(0, 0, 0, 0)
 render_priority = 0
 next_pass = SubResource("ShaderMaterial_qek5x")
 shader = ExtResource("3_0owmy")
+shader_parameter/flash_color = Color(1, 1, 1, 0)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_x7p2l"]
 top_radius = 0.1

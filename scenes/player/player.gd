@@ -20,6 +20,10 @@ var current_player_index: int = 0
 var unique_outline_mat: ShaderMaterial
 var base_outline_color: Color
 
+var base_material: ShaderMaterial # Material principal del cuerpo
+var dash_was_ready: bool = false # Inicializar en false para que flasheen al empezar
+var pound_was_ready: bool = false
+
 
 const PLAYER_COLORS = [
 	Color(1.0, 0.0, 0.0), # Jugador 1 - Rojo
@@ -90,6 +94,8 @@ func _ready():
 		# Los clones que cargan en tu pantalla le piden al Servidor que los actualice
 		rpc_id(1, "request_sync")
 
+# =========================================================
+# --- RCP ---
 # 1. El cliente le avisa al Servidor su nombre elegido
 @rpc("any_peer", "reliable")
 func register_player_data(p_name: String):
@@ -127,6 +133,24 @@ func sync_player_data(idx: int, p_name: String):
 	
 	nameplate.text = str(idx + 1) + ". " + custom_name
 	reset_outline_color()
+	
+		# =====================================
+		#  --- FUNCIONES MATERIAL ALBEDO ---
+
+# 5. Esta función es la que "ordena" a los demás que flasheen
+func request_flash(color: Color, intensity: float, time_ms: float):
+	# Ejecutamos localmente y enviamos a los demás
+	rpc("remote_flash_model", color, intensity, time_ms)
+
+# 6. Esta es la que realmente cambia el material en cada PC
+@rpc("any_peer", "call_local", "reliable")
+func remote_flash_model(color: Color, intensity: float, time_ms: float):
+	if base_material:
+		var tint = Color(color.r, color.g, color.b, intensity)
+		base_material.set_shader_parameter("flash_color", tint)
+		
+		await get_tree().create_timer(time_ms / 1000.0).timeout
+		base_material.set_shader_parameter("flash_color", Color(1, 1, 1, 0))
 
 # =========================================================
 # --- FUNCIONES MODULARES DEL OUTLINE ---
@@ -135,13 +159,14 @@ func _make_outline_unique():
 	if unique_outline_mat != null: return
 	
 	var mesh = %CollisionShape3D.get_node("MeshInstance3D")
-	var base_mat = mesh.get_surface_override_material(0)
+	var mat_override = mesh.get_surface_override_material(0)
 	
-	var unique_mat = base_mat.duplicate()
-	unique_outline_mat = unique_mat.next_pass.duplicate()
-	unique_mat.next_pass = unique_outline_mat
+	# Duplicamos el material base para que el flash no afecte a otros jugadores
+	base_material = mat_override.duplicate()
+	unique_outline_mat = base_material.next_pass.duplicate()
+	base_material.next_pass = unique_outline_mat
 	
-	mesh.set_surface_override_material(0, unique_mat)
+	mesh.set_surface_override_material(0, base_material)
 
 func set_outline_color(new_color: Color, time_ms: float = 0.0):
 	if unique_outline_mat:
@@ -206,7 +231,7 @@ func _attempt_dash() -> void:
 	can_bounce = true
 	dash_timer = DASH_DURATION
 	
-	set_outline_color(Color(1.0, 0.5, 0.0), 500)
+	set_outline_color(Color.ORANGE, 500)
 	
 	var input_dir := Input.get_vector("down", "up", "left", "right")
 	dash_direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
@@ -294,7 +319,7 @@ func _physics_process(delta: float) -> void:
 			
 		if ctrl_bounce == true:
 			velocity += (get_gravity() * delta) * 10
-			set_outline_color(Color(0.296, 0.736, 0.741, 1.0),500)
+			set_outline_color(Color.AQUA,500)
 			
 			if is_on_floor():
 				velocity.y =  speed 
@@ -323,6 +348,22 @@ func _physics_process(delta: float) -> void:
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	speed_label.text = "Speed: " + str(snapped(horizontal_speed, 0.1))
 	dash_label.text = "CAN DASH" if dash_possible() else "NO DASH"
+	
+	var current_dash_ready = dash_possible()
+	var current_pound_ready = pound_possible()
+	
+	if current_dash_ready and not dash_was_ready:
+		request_flash(Color.ORANGE, 1.0, 200.0)
+		print("Dash listo")
+	dash_was_ready = current_dash_ready
+
+	# Flash para el Pound
+	if current_pound_ready and not pound_was_ready:
+		request_flash(Color.CYAN, 1.0, 200.0)
+		print("Pound listo")
+	pound_was_ready = current_pound_ready
+		
+
 	
 	move_and_slide()
 	_push_away_rigid_bodies()
