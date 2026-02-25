@@ -35,12 +35,20 @@ theme_override_constants/margin_right = 50
 theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control/center/MarginContainer" unique_id=290658762]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 theme_override_constants/separation = 15
 
 [node name="Label" type="Label" parent="Control/center/MarginContainer/VBoxContainer" unique_id=1187024418]
 layout_mode = 2
 text = "MultiHitter"
+horizontal_alignment = 1
+
+[node name="LineEdit" type="LineEdit" parent="Control/center/MarginContainer/VBoxContainer" unique_id=1822149509]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "name (optional)"
+alignment = 1
 
 [node name="ButtonJoin" type="Button" parent="Control/center/MarginContainer/VBoxContainer" unique_id=966755021]
 unique_name_in_owner = true

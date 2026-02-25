@@ -12,6 +12,14 @@ extends CharacterBody3D
 @onready var speed_label: Label = %SpeedLabel
 @onready var dash_label: Label = %DashReportLabel
 @onready var speed_lines: ColorRect = %SpeedLines
+var custom_name: String = ""
+
+const PLAYER_COLORS = [
+	Color(1.0, 0.0, 0.0), # Jugador 1 - Rojo
+	Color(0.0, 0.0, 1.0), # Jugador 2 - Azul
+	Color(0.0, 1.0, 0.0), # Jugador 3 - Verde
+	Color(1.0, 1.0, 0.0)  # Jugador 4 - Amarillo
+]
 
 const START_SPEED = 6.0
 const MAX_SPEED_RUN = 10.0
@@ -40,9 +48,54 @@ var dash_direction: Vector3 = Vector3.ZERO
 var can_bounce: bool = true
 var ctrl_bounce: bool = false
 
+
 func _enter_tree() -> void:
 	set_multiplayer_authority(int(name))
 ###########################################################################
+func _set_outline_color():
+	var node_peer_id = int(name)
+	
+	# Obtenemos todos los peers conectados (excluye el local)
+	var all_peers = multiplayer.get_peers()
+	
+	# Añadimos nuestro propio ID para tener el panorama completo
+	all_peers.append(multiplayer.get_unique_id())
+	
+	# Ordenamos para que todos los clientes tengan la lista en el mismo orden
+	all_peers.sort()
+	
+	# Buscamos la posición del ID de ESTE nodo específico
+	var player_index = all_peers.find(node_peer_id)
+	
+	# Fallback de seguridad en caso de desincronización
+	if player_index == -1:
+		player_index = 0
+		
+	var chosen_color = PLAYER_COLORS[player_index % PLAYER_COLORS.size() - 1]
+	
+	var mesh = %CollisionShape3D.get_node("MeshInstance3D")
+	var base_mat = mesh.get_surface_override_material(0)
+	
+	var unique_mat = base_mat.duplicate()
+	var unique_outline = unique_mat.next_pass.duplicate()
+	unique_mat.next_pass = unique_outline
+	
+	unique_outline.set_shader_parameter("color", chosen_color)
+	mesh.set_surface_override_material(0, unique_mat)
+	return player_index
+##########################################################################
+@rpc("any_peer", "call_local", "reliable")
+func update_nameplate(new_name: String):
+	custom_name = new_name
+	var p_index = _set_outline_color()
+	nameplate.text = str(p_index) + ". " + custom_name
+
+@rpc("any_peer", "reliable")
+func request_name():
+	var sender_id = multiplayer.get_remote_sender_id()
+	# Le respondemos exclusivamente a quien nos lo preguntó enviándole nuestro nombre
+	rpc_id(sender_id, "update_nameplate", custom_name)
+##########################################################################
 
 func _push_away_rigid_bodies():
 	for i in get_slide_collision_count():
@@ -113,7 +166,6 @@ func _attempt_dash() -> void:
 
 func _ready():
 	add_to_group('Players')
-	nameplate.text = name
 	menu.hide()
 	
 	if is_multiplayer_authority():
@@ -121,13 +173,24 @@ func _ready():
 		print(name, " is auth\n")
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		button_leave.pressed.connect(func(): Network.leave_server())
+		
+		# Leemos el nombre que guardamos en la pantalla de inicio
+		var my_name = Network.local_player_name
+		if my_name == "":
+			my_name = name # Nombre por defecto si lo dejan vacío
+			
+		# Nos lo asignamos localmente y lo enviamos al resto por la red
+		rpc("update_nameplate", my_name)
+		
 	else:
 		set_process(false)
 		set_physics_process(false)
 		print(name, " is not auth\n")
 		speed_lines.hide()
 		$CanvasLayer.hide()
-		return
+		
+		# Si somos un "clon" en la pantalla de otro, le preguntamos al dueño original cuál es su nombre
+		rpc_id(int(name), "request_name")
 	
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_multiplayer_authority():
@@ -248,3 +311,5 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	_push_away_rigid_bodies()
+	
+	

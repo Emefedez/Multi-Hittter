@@ -18,6 +18,7 @@ func _ready() -> void:
 	
 	
 func on_join():
+	Network.local_player_name = %LineEdit.text
 	Network.join_server()
 	add_world()
 	print("Joined correcly\nAs auth?: ", (true == is_multiplayer_authority()), "\n")

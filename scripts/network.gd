@@ -5,6 +5,8 @@ var enet_peer := ENetMultiplayerPeer.new()
 
 var PORT = 9999
 var IP_ADDRESS = '127.0.0.1'
+var local_player_name := ""
+
 
 func start_server():
 	enet_peer.create_server(PORT)

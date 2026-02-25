@@ -1,13 +1,27 @@
 [gd_scene format=3 uid="uid://k6mcorwk6nxq"]
 
 [ext_resource type="Script" uid="uid://chg6jptqg2sx1" path="res://scenes/player/player.gd" id="1_8afob"]
+[ext_resource type="Shader" uid="uid://wwngu6webnt2" path="res://shaders/outline.gdshader" id="2_75vfm"]
 [ext_resource type="Shader" uid="uid://wi1n7ogdvqn1" path="res://shaders/psx.gdshader" id="2_dovo2"]
+[ext_resource type="Shader" uid="uid://joirl2ussjmw" path="res://scenes/player/empty.gdshader" id="3_0owmy"]
 [ext_resource type="Script" uid="uid://buwkir1viskug" path="res://scenes/player/quad_resize.gd" id="3_gmlin"]
 [ext_resource type="Shader" uid="uid://bqf4w31qswtlv" path="res://shaders/speed_lines.gdshader" id="4_lvxji"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_x7p2l"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_8afob"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qek5x"]
+render_priority = -2
+shader = ExtResource("2_75vfm")
+shader_parameter/enable = true
+shader_parameter/outline_thickness = 0.05
+shader_parameter/color = Color(0, 0, 0, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_p47bc"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_qek5x")
+shader = ExtResource("3_0owmy")
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_x7p2l"]
 top_radius = 0.1
@@ -64,6 +78,7 @@ shape = SubResource("CapsuleShape3D_x7p2l")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="CollisionShape3D" unique_id=1306409986]
 layers = 2
 mesh = SubResource("CapsuleMesh_8afob")
+surface_material_override/0 = SubResource("ShaderMaterial_p47bc")
 
 [node name="Head" type="Node3D" parent="." unique_id=754328646]
 unique_name_in_owner = true
