@@ -21,8 +21,13 @@ var unique_outline_mat: ShaderMaterial
 var base_outline_color: Color
 
 var base_material: ShaderMaterial # Material principal del cuerpo
+
+#--------VARIABLES DE MOVIMIENTO----------
 var dash_was_ready: bool = false # Inicializar en false para que flasheen al empezar
 var pound_was_ready: bool = false
+
+var extra_jump: bool = true
+
 
 
 const PLAYER_COLORS = [
@@ -273,6 +278,7 @@ func _physics_process(delta: float) -> void:
 		speed_lines.show()
 	
 	if Input.is_action_just_pressed("ctrl"):
+		velocity += get_gravity() * delta
 		if pound_possible():
 			ctrl_bounce = true
 			last_pound_ms = Time.get_ticks_msec()
@@ -313,6 +319,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		if is_on_floor():
 			can_bounce = true
+			extra_jump = true
 			
 		if not is_on_floor() && ctrl_bounce == false:
 			velocity += get_gravity() * delta
@@ -325,25 +332,35 @@ func _physics_process(delta: float) -> void:
 				velocity.y =  speed 
 				ctrl_bounce = false
 
-		if Input.is_action_just_pressed("jump") and is_on_floor():
+	if Input.is_action_just_pressed("jump"):
+		if is_on_floor():
+			# Salto normal desde el suelo
 			velocity.y = JUMP_VELOCITY
+			# No tocamos extra_jump aquí para que esté disponible en el aire
+		elif extra_jump:
+			# Salto en el aire (Doble Salto)
+			velocity.y = JUMP_VELOCITY # O JUMP_VELOCITY * 1.2 si quieres que sea más fuerte
+			extra_jump = false
+			print("Double jumped!")
+			# Opcional: podrías llamar a un flash especial aquí
+			request_flash(Color.WHITE, 0.5, 100.0)
 
-		var input_dir := Input.get_vector("down", "up", "left", "right")
-		var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	var input_dir := Input.get_vector("down", "up", "left", "right")
+	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 		
-		if direction:
-			if speed < MAX_SPEED_RUN and (Time.get_ticks_msec() - speed_counter) > int(speed_plus_cooldown * 1000):
-				speed = min(speed * 1.2, MAX_SPEED_RUN) 
-				speed_counter = Time.get_ticks_msec() 
+	if direction:
+		if speed < MAX_SPEED_RUN and (Time.get_ticks_msec() - speed_counter) > int(speed_plus_cooldown * 1000):
+			speed = min(speed * 1.2, MAX_SPEED_RUN) 
+			speed_counter = Time.get_ticks_msec() 
 			
-			velocity.x = move_toward(velocity.x, direction.x * speed, DECELERATION * delta)
-			velocity.z = move_toward(velocity.z, direction.z * speed, DECELERATION * delta)
-		else:
-			speed = START_SPEED
-			speed_counter = Time.get_ticks_msec()
+		velocity.x = move_toward(velocity.x, direction.x * speed, DECELERATION * delta)
+		velocity.z = move_toward(velocity.z, direction.z * speed, DECELERATION * delta)
+	else:
+		speed = START_SPEED
+		speed_counter = Time.get_ticks_msec()
 			
-			velocity.x = move_toward(velocity.x, 0, DECELERATION * delta)
-			velocity.z = move_toward(velocity.z, 0, DECELERATION * delta)
+		velocity.x = move_toward(velocity.x, 0, DECELERATION * delta)
+		velocity.z = move_toward(velocity.z, 0, DECELERATION * delta)
 
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
 	speed_label.text = "Speed: " + str(snapped(horizontal_speed, 0.1))

@@ -30,12 +30,12 @@ bottom_radius = 0.4
 height = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gmlin"]
-render_priority = 0
+render_priority = -5
 shader = ExtResource("2_dovo2")
 shader_parameter/enabled = true
 shader_parameter/dithering = true
-shader_parameter/colors = 12
-shader_parameter/dither_size = 2
+shader_parameter/colors = 10
+shader_parameter/dither_size = 4
 
 [sub_resource type="QuadMesh" id="QuadMesh_8afob"]
 material = SubResource("ShaderMaterial_gmlin")
