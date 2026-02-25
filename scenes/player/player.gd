@@ -12,7 +12,14 @@ extends CharacterBody3D
 @onready var speed_label: Label = %SpeedLabel
 @onready var dash_label: Label = %DashReportLabel
 @onready var speed_lines: ColorRect = %SpeedLines
+
 var custom_name: String = ""
+var current_player_index: int = 0
+
+# --- VARIABLES PARA EL COLOR ---
+var unique_outline_mat: ShaderMaterial
+var base_outline_color: Color
+
 
 const PLAYER_COLORS = [
 	Color(1.0, 0.0, 0.0), # Jugador 1 - Rojo
@@ -34,10 +41,8 @@ const JUMP_VELOCITY = 4.5
 const dash_cooldown_ms := 1000 
 var last_dash_ms := 0
 
-# --- NUEVO: Cooldown para el Ctrl (Ground Pound) ---
-const pound_cooldown_ms := 1500 # 1.5 segundos de espera
+const pound_cooldown_ms := 1500 
 var last_pound_ms := 0
-# ---------------------------------------------------
 
 @export var sensitivity: float = 0.002
 
@@ -51,51 +56,111 @@ var ctrl_bounce: bool = false
 
 func _enter_tree() -> void:
 	set_multiplayer_authority(int(name))
-###########################################################################
-func _set_outline_color():
-	var node_peer_id = int(name)
+
+# =========================================================
+# --- SISTEMA DE RED A PRUEBA DE FALLOS ---
+
+func _ready():
+	add_to_group('Players')
+	menu.hide()
 	
-	# Obtenemos todos los peers conectados (excluye el local)
-	var all_peers = multiplayer.get_peers()
-	
-	# Añadimos nuestro propio ID para tener el panorama completo
-	all_peers.append(multiplayer.get_unique_id())
-	
-	# Ordenamos para que todos los clientes tengan la lista en el mismo orden
-	all_peers.sort()
-	
-	# Buscamos la posición del ID de ESTE nodo específico
-	var player_index = all_peers.find(node_peer_id)
-	
-	# Fallback de seguridad en caso de desincronización
-	if player_index == -1:
-		player_index = 0
+	if is_multiplayer_authority():
+		camera_3d.current = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		button_leave.pressed.connect(func(): Network.leave_server())
 		
-	var chosen_color = PLAYER_COLORS[player_index % PLAYER_COLORS.size() - 1]
+		# SOLUCIÓN WARNING: Usamos str(name) para que coincida el tipo String
+		var my_name = Network.local_player_name if Network.local_player_name != "" else str(name)
+		
+		if multiplayer.is_server():
+			# El Host ya conoce su ID desde el diccionario de Network y se auto-sincroniza
+			var my_id = multiplayer.get_unique_id()
+			var my_idx = Network.assigned_indices.get(my_id, 0)
+			_server_store_and_sync(my_idx, my_name)
+		else:
+			# El cliente dueño se presenta y envía su nombre al servidor
+			rpc_id(1, "register_player_data", my_name)
+			
+	else:
+		set_process(false)
+		set_physics_process(false)
+		speed_lines.hide()
+		$CanvasLayer.hide()
+		
+		# Los clones que cargan en tu pantalla le piden al Servidor que los actualice
+		rpc_id(1, "request_sync")
+
+# 1. El cliente le avisa al Servidor su nombre elegido
+@rpc("any_peer", "reliable")
+func register_player_data(p_name: String):
+	if not multiplayer.is_server(): return
+	var node_id = int(name) # El nombre del nodo es el peer_id real
+	var idx = Network.assigned_indices.get(node_id, 0)
+	_server_store_and_sync(idx, p_name)
+
+# 2. El Servidor guarda los datos de este nodo y los transmite a TODOS
+func _server_store_and_sync(idx: int, p_name: String):
+	current_player_index = idx
+	custom_name = p_name
+	rpc("sync_player_data", idx, p_name)
+
+# 3. Un clon entra tarde y pide los datos de ESTE nodo al servidor
+@rpc("any_peer", "reliable")
+func request_sync():
+	if not multiplayer.is_server(): return
+	var sender = multiplayer.get_remote_sender_id()
+	# El servidor le contesta a ese clon con la info que ya tenía guardada
+	rpc_id(sender, "sync_player_data", current_player_index, custom_name)
+
+# 4. Todos ejecutan esto para aplicar el texto y el color final
+@rpc("any_peer", "call_local", "reliable")
+func sync_player_data(idx: int, p_name: String):
+	current_player_index = idx
+	custom_name = p_name
+	
+	# Fallback por si acaso
+	if custom_name == "":
+		custom_name = str(name)
+		
+	_make_outline_unique()
+	base_outline_color = PLAYER_COLORS[idx % PLAYER_COLORS.size()]
+	
+	nameplate.text = str(idx + 1) + ". " + custom_name
+	reset_outline_color()
+
+# =========================================================
+# --- FUNCIONES MODULARES DEL OUTLINE ---
+
+func _make_outline_unique():
+	if unique_outline_mat != null: return
 	
 	var mesh = %CollisionShape3D.get_node("MeshInstance3D")
 	var base_mat = mesh.get_surface_override_material(0)
 	
 	var unique_mat = base_mat.duplicate()
-	var unique_outline = unique_mat.next_pass.duplicate()
-	unique_mat.next_pass = unique_outline
+	unique_outline_mat = unique_mat.next_pass.duplicate()
+	unique_mat.next_pass = unique_outline_mat
 	
-	unique_outline.set_shader_parameter("color", chosen_color)
 	mesh.set_surface_override_material(0, unique_mat)
-	return player_index
-##########################################################################
-@rpc("any_peer", "call_local", "reliable")
-func update_nameplate(new_name: String):
-	custom_name = new_name
-	var p_index = _set_outline_color()
-	nameplate.text = str(p_index) + ". " + custom_name
 
-@rpc("any_peer", "reliable")
-func request_name():
-	var sender_id = multiplayer.get_remote_sender_id()
-	# Le respondemos exclusivamente a quien nos lo preguntó enviándole nuestro nombre
-	rpc_id(sender_id, "update_nameplate", custom_name)
-##########################################################################
+func set_outline_color(new_color: Color, time_ms: float = 0.0):
+	if unique_outline_mat:
+		unique_outline_mat.set_shader_parameter("color", new_color)
+		if time_ms > 0.0:
+			print("[DEBUG] Temporary outline: ", new_color, " in node ", name, " for ", time_ms, "ms")
+			await get_tree().create_timer(time_ms / 1000.0).timeout
+			reset_outline_color()
+	else:
+		print("[ERROR] Trying to change color without unique material in: ", name)
+
+func reset_outline_color():
+	if base_outline_color:
+		set_outline_color(base_outline_color)
+	else:
+		# Fallback si el color base aún no se ha sincronizado
+		set_outline_color(Color.WHITE)
+
+# =========================================================
 
 func _push_away_rigid_bodies():
 	for i in get_slide_collision_count():
@@ -105,29 +170,20 @@ func _push_away_rigid_bodies():
 		if collider is RigidBody3D:
 			var normal = c.get_normal()
 			
-			# 1. SI ESTAMOS CAYENDO SOBRE LA PELOTA (El jugador cae hacia abajo y toca la parte superior)
 			if velocity.y < 0 and normal.y > 0.5:
-				# Obtenemos hacia donde mira el jugador (-Z es el frente en Godot)
 				var forward_dir = -transform.basis.z
-				
-				# Creamos un vector que apunte al frente y ligeramente hacia arriba para que la pelota bote
 				var bounce_dir = (forward_dir + Vector3(0, 0.8, 0)).normalized()
-				
-				# Aplicamos el impulso para que la pelota salga disparada
 				var bounce_force = collider.mass * 6.0 
 				collider.apply_central_impulse(bounce_dir * bounce_force)
 				
-				# Hacemos que el jugador rebote un poco hacia arriba al pisarla
 				velocity.y = 3.0 
-				continue # Terminamos aquí este frame para no mezclar fuerzas
+				continue 
 			
-			# 2. EMPUJE HORIZONTAL NORMAL (Caminando o haciendo Dash)
 			var push_dir = -normal
 			push_dir.y = 0
 			
 			if push_dir.length() > 0.01:
 				push_dir = push_dir.normalized()
-				
 				var player_v = velocity.dot(push_dir)
 				var rb_v = collider.linear_velocity.dot(push_dir)
 				var velocity_diff = player_v - rb_v
@@ -135,25 +191,22 @@ func _push_away_rigid_bodies():
 				if velocity_diff > 0:
 					var push_force = velocity_diff * collider.mass * 0.2
 					collider.apply_central_impulse(push_dir * push_force)
-			
-############################################################################
+
 func dash_possible() -> bool:
 	return Time.get_ticks_msec() - last_dash_ms > dash_cooldown_ms
 
-# --- NUEVO: Función para chequear el cooldown del Ctrl ---
 func pound_possible() -> bool:
 	return Time.get_ticks_msec() - last_pound_ms > pound_cooldown_ms
-# ---------------------------------------------------------
 
 func _attempt_dash() -> void:
 	if not dash_possible():
 		return
 
-	print("Dash attempted")
 	last_dash_ms = Time.get_ticks_msec()
-	
 	can_bounce = true
 	dash_timer = DASH_DURATION
+	
+	set_outline_color(Color(1.0, 0.5, 0.0), 500)
 	
 	var input_dir := Input.get_vector("down", "up", "left", "right")
 	dash_direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
@@ -162,36 +215,7 @@ func _attempt_dash() -> void:
 		dash_direction = transform.basis.x
 		
 	velocity.y = 0.0
-############################################################################
 
-func _ready():
-	add_to_group('Players')
-	menu.hide()
-	
-	if is_multiplayer_authority():
-		camera_3d.current = true
-		print(name, " is auth\n")
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-		button_leave.pressed.connect(func(): Network.leave_server())
-		
-		# Leemos el nombre que guardamos en la pantalla de inicio
-		var my_name = Network.local_player_name
-		if my_name == "":
-			my_name = name # Nombre por defecto si lo dejan vacío
-			
-		# Nos lo asignamos localmente y lo enviamos al resto por la red
-		rpc("update_nameplate", my_name)
-		
-	else:
-		set_process(false)
-		set_physics_process(false)
-		print(name, " is not auth\n")
-		speed_lines.hide()
-		$CanvasLayer.hide()
-		
-		# Si somos un "clon" en la pantalla de otro, le preguntamos al dueño original cuál es su nombre
-		rpc_id(int(name), "request_name")
-	
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_multiplayer_authority():
 		return
@@ -223,40 +247,33 @@ func _physics_process(delta: float) -> void:
 	else:
 		speed_lines.show()
 	
-	# --- MODIFICADO: Ahora chequeamos el cooldown ---
 	if Input.is_action_just_pressed("ctrl"):
 		if pound_possible():
 			ctrl_bounce = true
-			last_pound_ms = Time.get_ticks_msec() # Reseteamos el cooldown
-	# ------------------------------------------------
+			last_pound_ms = Time.get_ticks_msec()
+			
 
 	if Input.is_action_just_pressed("dash"):
 		_attempt_dash()
 
 	if dash_timer > 0:
-		# ESTADO: DASHING
 		dash_timer -= delta
 		
 		if is_on_wall() and can_bounce:
 			var valid_wall_normal = Vector3.ZERO
 			var found_valid_wall = false
 			
-			# Revisamos las colisiones del último frame para encontrar la pared real, ignorando la pelota
 			for i in get_slide_collision_count():
 				var collision = get_slide_collision(i)
 				var collider = collision.get_collider()
 				
-				# Filtramos cualquier RigidBody3D (como la pelota)
 				if not collider is RigidBody3D:
 					var n = collision.get_normal()
-					# Comprobamos que la superficie sea vertical (pared). 
-					# Un valor absoluto de 'y' menor a 0.7 equivale aprox. a ángulos mayores de 45 grados.
 					if abs(n.y) < 0.7: 
 						valid_wall_normal = n
 						found_valid_wall = true
 						break
 			
-			# Si realmente chocamos contra una pared válida, aplicamos el rebote matemático
 			if found_valid_wall:
 				dash_direction = dash_direction.bounce(valid_wall_normal)
 				dash_direction.y = 0 
@@ -264,7 +281,6 @@ func _physics_process(delta: float) -> void:
 				
 				if speed >= 25:
 					can_bounce = false
-			
 		
 		velocity.x = dash_direction.x * DASH_SPEED
 		velocity.z = dash_direction.z * DASH_SPEED
@@ -273,16 +289,15 @@ func _physics_process(delta: float) -> void:
 		if is_on_floor():
 			can_bounce = true
 			
-		# Gravedad Normal
 		if not is_on_floor() && ctrl_bounce == false:
 			velocity += get_gravity() * delta
 			
-		# Caída Rápida (Ground Pound)
 		if ctrl_bounce == true:
 			velocity += (get_gravity() * delta) * 10
+			set_outline_color(Color(0.296, 0.736, 0.741, 1.0),500)
 			
 			if is_on_floor():
-				velocity.y =  speed # Rebote hacia arriba al tocar suelo
+				velocity.y =  speed 
 				ctrl_bounce = false
 
 		if Input.is_action_just_pressed("jump") and is_on_floor():
@@ -311,5 +326,3 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	_push_away_rigid_bodies()
-	
-	

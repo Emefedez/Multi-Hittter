@@ -4,8 +4,13 @@ extends CanvasLayer
 
 const WORLD_FOREST = preload("uid://dpbxeeslo572q")
 const PLAYER = preload("uid://k6mcorwk6nxq")
+@onready var line_edit: LineEdit = %LineEdit
+
 
 func _ready() -> void:
+	if (line_edit.has_focus() && Input.is_action_just_pressed("enter")):
+		on_join()
+		
 	button_join.pressed.connect(on_join)
 	button_quit.pressed.connect(func(): get_tree().quit())
 	
