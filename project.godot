@@ -30,15 +30,17 @@ project/assembly_name="MultiHitter"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/tile-run-instances/plugin.cfg")
+enabled=PackedStringArray("res://addons/func_godot/plugin.cfg", "res://addons/tile-run-instances/plugin.cfg")
 
 [file_customization]
 
 folder_colors={
+"res://addons/func_godot/": "teal",
 "res://assets/": "green",
 "res://scenes/": "red",
 "res://scripts/": "yellow",
-"res://shaders/": "pink"
+"res://shaders/": "pink",
+"res://trenchbroom/": "blue"
 }
 
 [input]
