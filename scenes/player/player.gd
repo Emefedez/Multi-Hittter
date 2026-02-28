@@ -465,23 +465,21 @@ func _throw_ball():
 	
 func _die():
 	if not is_multiplayer_authority(): return
+	hp_label.value = 0
 	
 	if held_ball:
 		_throw_ball()
 		
 	camera_3d.current = true
 	
-	# 2. Desactivar físicas y control del jugador
-	hide() # Hacer invisible al jugador localmente
+	hide() 
+	multiplayer.multiplayer_peer.close()
 	set_physics_process(false)
 	set_process_unhandled_input(false)
 	
-	# 3. Mostrar Menú y liberar el ratón
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	menu.show()
-	
-	# 4. Esperar 3 segundos (Tiempo de la Death Cam)
-	await get_tree().create_timer(3.0).timeout
+
 
 	
 	

@@ -22,5 +22,5 @@ func _on_body_entered(body: Node) -> void:
 	if not multiplayer.is_server(): return
 	
 	if body is CharacterBody3D and body.is_in_group(&"Players"):
-		if linear_velocity.length() >= 2.0:
+		if linear_velocity.length() >= 0.1:
 			body.rpc(&"receive_damage", linear_velocity.length()*damage_multiply)
