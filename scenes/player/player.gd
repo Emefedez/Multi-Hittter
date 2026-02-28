@@ -11,11 +11,18 @@ extends CharacterBody3D
 @onready var menu: Control = %Menu
 @onready var button_leave: Button = %ButtonLeave
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
+@onready var interact_text: Control = %InteractText
 
 @onready var speed_label: Label = %SpeedLabel
 @onready var dash_label: Label = %DashReportLabel
 @onready var speed_lines: ColorRect = %SpeedLines
 @onready var speed_lines_material: ShaderMaterial = speed_lines.material
+
+# --- REFERENCIAS DE NODOS PARA AGARRAR ---
+@onready var hold_position: Marker3D = %HoldPosition
+@onready var pickup_area: Area3D = %PickupArea
+
+var held_ball: RigidBody3D = null
 
 # --- CONSTANTES ---
 const PLAYER_COLORS = [
@@ -52,6 +59,8 @@ var spent_wall_jump: bool = false
 var custom_name: String = ""
 var current_player_index: int = 0
 
+var object_in_hand: bool = false
+
 @export var sensitivity: float = 0.002
 
 # --- MATERIALES Y SHADERS ---
@@ -74,6 +83,7 @@ func _enter_tree() -> void:
 func _ready():
 	add_to_group(&"Players")
 	menu.hide()
+	interact_text.hide()
 	
 	if is_multiplayer_authority():
 		camera_3d.current = true
@@ -137,6 +147,33 @@ func remote_flash_model(color: Color, intensity: float, time_ms: float):
 		base_material.set_shader_parameter(SN_FLASH_COLOR, tint)
 		await get_tree().create_timer(time_ms / 1000.0).timeout
 		base_material.set_shader_parameter(SN_FLASH_COLOR, Color(1, 1, 1, 0))
+		
+@rpc("call_local", "reliable")
+func sync_held_ball(ball_path: NodePath):
+	var ball = get_node_or_null(ball_path)
+	if ball:
+		held_ball = ball
+		object_in_hand = true
+		
+@rpc("any_peer", "call_local", "reliable")
+func server_throw(throw_dir: Vector3, player_vel: Vector3):
+	if not multiplayer.is_server(): return
+	
+	if held_ball:
+		held_ball.freeze = false
+		# Aplicamos el impulso usando la dirección de la cámara + la velocidad actual del jugador [cite: 6]
+		var throw_force = 15.0
+		var impulse = (throw_dir * throw_force) + player_vel 
+		
+		held_ball.apply_central_impulse(impulse)
+		held_ball.holding_player = null
+		
+		rpc(&"sync_drop_ball")
+
+@rpc("call_local", "reliable")
+func sync_drop_ball():
+	held_ball = null
+	object_in_hand = false
 
 # =========================================================
 # --- FUNCIONES DE MATERIAL ---
@@ -329,6 +366,12 @@ func _physics_process(delta: float) -> void:
 		speed_counter = current_time
 		velocity.x = move_toward(velocity.x, 0, DECELERATION * delta)
 		velocity.z = move_toward(velocity.z, 0, DECELERATION * delta)
+		
+	if Input.is_action_just_pressed(&"interact"):
+		if held_ball == null:
+			_try_pickup()
+		else:
+			_throw_ball()
 
 	# Actualización de UI
 	speed_label.text = "Speed: " + str(snapped(Vector2(velocity.x, velocity.z).length(), 0.1))
@@ -349,3 +392,23 @@ func _physics_process(delta: float) -> void:
 	var pre_velocity = velocity	
 	move_and_slide()
 	_push_away_rigid_bodies(pre_velocity)
+
+#####################################
+# Para interacciones con objetos
+
+func _try_pickup():
+	interact_text.show()
+	var bodies = pickup_area.get_overlapping_bodies()
+	for b in bodies:
+		if b is RigidBody3D and b.is_in_group("Grabbable") and not b.get("holding_player"):
+			# Pedimos al servidor que asigne esta pelota a nuestro jugador
+			rpc_id(1, &"server_pickup", b.get_path())
+			interact_text.hide()
+			break
+			
+func _throw_ball():
+	# Calculamos el vector de dirección hacia donde mira la cámara 
+	var throw_dir = -camera_3d.global_transform.basis.z.normalized()
+	rpc_id(1, &"server_throw", throw_dir, velocity)
+	
+	
