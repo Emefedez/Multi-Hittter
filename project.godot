@@ -22,7 +22,11 @@ TileRunInstancesGlobal="*uid://b6fg6pu2bfi14"
 
 [display]
 
+window/size/viewport_width=640
+window/size/viewport_height=480
 window/size/always_on_top=true
+window/stretch/mode="viewport"
+window/stretch/aspect="keep_height"
 
 [dotnet]
 

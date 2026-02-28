@@ -57,7 +57,7 @@ func add_player(peer_id: int):
 	get_tree().current_scene.add_child(new_player, true)
 
 func remove_player(peer_id):
-	if peer_id == 1: leave_server()
+	if (peer_id as int == 1): leave_server()
 	
 	if assigned_indices.has(peer_id):
 		print("Jugador ", peer_id, " (Índice ", assigned_indices[peer_id], ") desconectado.")

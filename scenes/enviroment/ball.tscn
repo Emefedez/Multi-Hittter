@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://buuq1et4sodqg"]
 
 [ext_resource type="Texture2D" uid="uid://nn1dc35e7liu" path="res://trenchbroom/textures/Red/texture_08.png" id="1_dtxv4"]
-[ext_resource type="Script" uid="uid://1dv3v0o6s220" path="res://scripts/ball.gd" id="1_p5dnn"]
+[ext_resource type="Script" uid="uid://1dv3v0o6s220" path="res://scripts/throwable.gd" id="1_p5dnn"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_p5dnn"]
 

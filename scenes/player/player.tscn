@@ -35,7 +35,7 @@ shader = ExtResource("2_dovo2")
 shader_parameter/enabled = true
 shader_parameter/dithering = true
 shader_parameter/colors = 10
-shader_parameter/dither_size = 4
+shader_parameter/dither_size = 1
 
 [sub_resource type="QuadMesh" id="QuadMesh_8afob"]
 material = SubResource("ShaderMaterial_gmlin")
@@ -102,7 +102,7 @@ spring_length = 2.0
 [node name="Camera3D" type="Camera3D" parent="Head/SpringArm3D" unique_id=1004504828]
 unique_name_in_owner = true
 transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
-fov = 90.0
+fov = 110.3
 near = 0.5
 
 [node name="PSXShaderOverlay" type="MeshInstance3D" parent="Head/SpringArm3D/Camera3D" unique_id=1775239309 node_paths=PackedStringArray("camera")]
@@ -209,6 +209,7 @@ offset_right = -63.0
 offset_bottom = -11.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
 
 [node name="Label" type="Label" parent="CanvasLayer/InteractText" unique_id=2118867229]
 layout_mode = 0
@@ -218,6 +219,26 @@ offset_bottom = 23.0
 text = "Pick up item by pressing [E]"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="LifeBar" type="Control" parent="CanvasLayer" unique_id=960072929]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -28.0
+offset_right = 12.0
+offset_bottom = 40.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="CanvasLayer/LifeBar" unique_id=77004027]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -99.0
+offset_top = 1.0
+offset_right = 151.0
+offset_bottom = 28.0
+step = 1.0
 
 [node name="SpeedLines" type="Control" parent="." unique_id=2048160648]
 layout_mode = 3

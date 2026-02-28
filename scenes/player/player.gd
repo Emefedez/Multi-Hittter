@@ -12,7 +12,7 @@ extends CharacterBody3D
 @onready var button_leave: Button = %ButtonLeave
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
 @onready var interact_text: Control = %InteractText
-
+@onready var hp_label: ProgressBar = %ProgressBar
 @onready var speed_label: Label = %SpeedLabel
 @onready var dash_label: Label = %DashReportLabel
 @onready var speed_lines: ColorRect = %SpeedLines
@@ -42,6 +42,9 @@ const DASH_DURATION = 0.2
 const DASH_COOLDOWN_MS := 1000 
 const POUND_COOLDOWN_MS := 1500 
 
+var max_health: int = 100
+var current_health: int = 100
+
 # --- VARIABLES DE ESTADO ---
 var speed = START_SPEED 
 var speed_counter: int = 0 
@@ -68,7 +71,7 @@ var unique_outline_mat: ShaderMaterial
 var base_outline_color: Color
 var base_material: ShaderMaterial 
 
-# Cacheamos la gravedad para no consultarla al motor en cada frame
+# Si al final no la variamos, cacheamos la gravedad para no consultarla al motor en cada frame
 var gravity_vec: Vector3 = ProjectSettings.get_setting("physics/3d/default_gravity_vector") * ProjectSettings.get_setting("physics/3d/default_gravity")
 
 # --- OPTIMIZACIÓN DE STRINGS ---
@@ -157,44 +160,68 @@ func server_pickup(ball_path: NodePath):
 		rpc(&"sync_held_ball", ball_path)
 
 @rpc("any_peer", "call_local", "reliable")
-func sync_held_ball(ball_path: NodePath):
-	var ball = get_node_or_null(ball_path)
-	if ball:
-		held_ball = ball
-		object_in_hand = true
-		held_ball.collision_layer = 0
-		held_ball.collision_mask = 0
-		
-		# ¡Línea vital! Asegura que todos los clientes sepan que TÚ la tienes
-		held_ball.holding_player = self 
-		
-		# Usar get_node_or_null evita que el juego se congele si el nodo tarda un frame en existir
-		var sync_node = held_ball.get_node_or_null("MultiplayerSynchronizer")
-		if sync_node:
-			sync_node.process_mode = Node.PROCESS_MODE_DISABLED
-
-@rpc("any_peer", "call_local", "reliable")
 func server_throw(throw_dir: Vector3, player_vel: Vector3):
 	if not multiplayer.is_server(): return
 	if held_ball:
 		held_ball.freeze = false
 		var throw_force = 15.0
 		held_ball.linear_velocity = player_vel + (throw_dir * throw_force)
+		
+		held_ball.set("last_thrower", self)
+		
 		rpc(&"sync_drop_ball")
+
+@rpc("any_peer", "call_local", "reliable")
+func sync_held_ball(ball_path: NodePath):
+	var ball = get_node_or_null(ball_path)
+	if ball:
+		held_ball = ball
+		object_in_hand = true
+		
+		# Modificaciones de físicas aplazadas
+		held_ball.set_deferred("collision_layer", 0)
+		held_ball.set_deferred("collision_mask", 0)
+		
+		held_ball.set("holding_player", self) 
+		
+		var sync_node = held_ball.get_node_or_null("MultiplayerSynchronizer")
+		if sync_node:
+			sync_node.process_mode = Node.PROCESS_MODE_DISABLED
+
+		# --- AÑADIR OUTLINE A LA PELOTA ---
+		var meshes = held_ball.find_children("*", "MeshInstance3D")
+		for m in meshes:
+			m.material_overlay = unique_outline_mat
+
 
 @rpc("any_peer", "call_local", "reliable")
 func sync_drop_ball():
 	if held_ball:
-		held_ball.collision_layer = 1
-		held_ball.collision_mask = 1
-		held_ball.holding_player = null
+		# Modificaciones de físicas aplazadas
+		held_ball.call_deferred("add_collision_exception_with", self)
+		held_ball.set_deferred("continuous_cd", true) 
+		held_ball.set_deferred("collision_layer", 1)
+		held_ball.set_deferred("collision_mask", 1)
 		
-		var sync_node = held_ball.get_node_or_null("MultiplayerSynchronizer")
-		if sync_node:
-			sync_node.process_mode = Node.PROCESS_MODE_INHERIT
+		held_ball.set("holding_player", null)
+		
+		# --- QUITAR OUTLINE A LA PELOTA ---
+		var meshes = held_ball.find_children("*", "MeshInstance3D")
+		for m in meshes:
+			m.material_overlay = null
 			
 	held_ball = null
 	object_in_hand = false
+	
+@rpc("any_peer", "call_local", "reliable")
+func receive_damage(amount: int):
+	current_health -= amount
+	
+	remote_flash_model(Color.RED, 1.0, 300.0)
+	print(custom_name + " hit for " + str(amount) + " || " + "HP: " + str(current_health))
+	
+	if current_health <= 0:
+		call_deferred("_die")
 
 # =========================================================
 # --- FUNCIONES DE MATERIAL ---
@@ -296,6 +323,11 @@ func _physics_process(delta: float) -> void:
 		speed_lines_material.set_shader_parameter(SN_LINE_DENSITY, vel_len * 0.025)
 	speed_lines.visible = vel_len >= 12.0
 	
+	if pickup_area:
+		interact_text.show()
+		
+		
+	
 	if Input.is_action_just_pressed(&"ctrl"):
 		velocity += gravity_vec * delta
 		if pound_possible():
@@ -396,6 +428,7 @@ func _physics_process(delta: float) -> void:
 
 	# Actualización de UI
 	speed_label.text = "Speed: " + str(snapped(Vector2(velocity.x, velocity.z).length(), 0.1))
+	hp_label.value = current_health
 	
 	var can_dash_now = dash_possible()
 	var can_pound_now = pound_possible()
@@ -415,10 +448,9 @@ func _physics_process(delta: float) -> void:
 	_push_away_rigid_bodies(pre_velocity)
 
 #####################################
-# Para interacciones con objetos
+
 
 func _try_pickup():
-	interact_text.show()
 	var bodies = pickup_area.get_overlapping_bodies()
 	for b in bodies:
 		if b is RigidBody3D and b.is_in_group("Grabbable") and not b.get("holding_player"):
@@ -430,5 +462,27 @@ func _throw_ball():
 	if held_ball == null: return
 	var throw_dir = -camera_3d.global_transform.basis.z.normalized()
 	rpc_id(1, &"server_throw", throw_dir, velocity)
+	
+func _die():
+	if not is_multiplayer_authority(): return
+	
+	if held_ball:
+		_throw_ball()
+		
+	camera_3d.current = true
+	
+	# 2. Desactivar físicas y control del jugador
+	hide() # Hacer invisible al jugador localmente
+	set_physics_process(false)
+	set_process_unhandled_input(false)
+	
+	# 3. Mostrar Menú y liberar el ratón
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	menu.show()
+	
+	# 4. Esperar 3 segundos (Tiempo de la Death Cam)
+	await get_tree().create_timer(3.0).timeout
+
+	
 	
 	
