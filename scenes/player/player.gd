@@ -147,31 +147,52 @@ func remote_flash_model(color: Color, intensity: float, time_ms: float):
 		base_material.set_shader_parameter(SN_FLASH_COLOR, tint)
 		await get_tree().create_timer(time_ms / 1000.0).timeout
 		base_material.set_shader_parameter(SN_FLASH_COLOR, Color(1, 1, 1, 0))
-		
-@rpc("call_local", "reliable")
+
+@rpc("any_peer", "call_local", "reliable")
+func server_pickup(ball_path: NodePath):
+	if not multiplayer.is_server(): return
+	var ball = get_node_or_null(ball_path)
+	if ball and not ball.holding_player:
+		ball.holding_player = self
+		rpc(&"sync_held_ball", ball_path)
+
+@rpc("any_peer", "call_local", "reliable")
 func sync_held_ball(ball_path: NodePath):
 	var ball = get_node_or_null(ball_path)
 	if ball:
 		held_ball = ball
 		object_in_hand = true
+		held_ball.collision_layer = 0
+		held_ball.collision_mask = 0
 		
+		# ¡Línea vital! Asegura que todos los clientes sepan que TÚ la tienes
+		held_ball.holding_player = self 
+		
+		# Usar get_node_or_null evita que el juego se congele si el nodo tarda un frame en existir
+		var sync_node = held_ball.get_node_or_null("MultiplayerSynchronizer")
+		if sync_node:
+			sync_node.process_mode = Node.PROCESS_MODE_DISABLED
+
 @rpc("any_peer", "call_local", "reliable")
 func server_throw(throw_dir: Vector3, player_vel: Vector3):
 	if not multiplayer.is_server(): return
-	
 	if held_ball:
 		held_ball.freeze = false
-		# Aplicamos el impulso usando la dirección de la cámara + la velocidad actual del jugador [cite: 6]
 		var throw_force = 15.0
-		var impulse = (throw_dir * throw_force) + player_vel 
-		
-		held_ball.apply_central_impulse(impulse)
-		held_ball.holding_player = null
-		
+		held_ball.linear_velocity = player_vel + (throw_dir * throw_force)
 		rpc(&"sync_drop_ball")
 
-@rpc("call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func sync_drop_ball():
+	if held_ball:
+		held_ball.collision_layer = 1
+		held_ball.collision_mask = 1
+		held_ball.holding_player = null
+		
+		var sync_node = held_ball.get_node_or_null("MultiplayerSynchronizer")
+		if sync_node:
+			sync_node.process_mode = Node.PROCESS_MODE_INHERIT
+			
 	held_ball = null
 	object_in_hand = false
 
@@ -401,13 +422,12 @@ func _try_pickup():
 	var bodies = pickup_area.get_overlapping_bodies()
 	for b in bodies:
 		if b is RigidBody3D and b.is_in_group("Grabbable") and not b.get("holding_player"):
-			# Pedimos al servidor que asigne esta pelota a nuestro jugador
 			rpc_id(1, &"server_pickup", b.get_path())
 			interact_text.hide()
 			break
 			
 func _throw_ball():
-	# Calculamos el vector de dirección hacia donde mira la cámara 
+	if held_ball == null: return
 	var throw_dir = -camera_3d.global_transform.basis.z.normalized()
 	rpc_id(1, &"server_throw", throw_dir, velocity)
 	
