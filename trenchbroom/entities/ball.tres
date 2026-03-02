@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="FuncGodotFGDPointClass" format=3 uid="uid://to4v71xngqy0"]
+
+[ext_resource type="Script" uid="uid://d1nwwgcrner8b" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class_display_descriptor.gd" id="1_mir57"]
+[ext_resource type="Script" uid="uid://cxsqwtsqd8w33" path="res://addons/func_godot/src/fgd/func_godot_fgd_point_class.gd" id="2_nra0a"]
+[ext_resource type="PackedScene" uid="uid://buuq1et4sodqg" path="res://scenes/enviroment/ball.tscn" id="2_pgpd1"]
+
+[resource]
+script = ExtResource("2_nra0a")
+scene_file = ExtResource("2_pgpd1")
+classname = "ball"
+description = "physics ball throwable, normal size"
+metadata/_custom_type_script = "uid://cxsqwtsqd8w33"

@@ -10,5 +10,6 @@
 [resource]
 script = ExtResource("6_ltxqc")
 game_name = "Multi-Hitter"
+textures_root_folder = "assets"
 fgd_file = ExtResource("4_k1qwg")
 metadata/_custom_type_script = "uid://cx44c4vnq8bt5"
