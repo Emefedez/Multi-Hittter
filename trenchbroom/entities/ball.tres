@@ -11,6 +11,6 @@ classname = "ball"
 description = "physics ball throwable, normal size"
 meta_properties = Dictionary[String, Variant]({
 "color": Color(0.8, 0.8, 0.8, 1),
-"size": AABB(16, 16, 16, 8, 8, 8)
+"size": AABB(32, 32, 32, 8, 8, 8)
 })
 metadata/_custom_type_script = "uid://cxsqwtsqd8w33"
