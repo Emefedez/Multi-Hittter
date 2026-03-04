@@ -1,26 +1,57 @@
 extends RigidBody3D
 
-var holding_player: CharacterBody3D = null
+@export var max_health: int = 0 ## 0 significa indestructible (vida infinita)
+@export var damage_multiply: int = 1 ## Multiplicador de daño al golpear jugadores u otras cosas
 
-@export var damage_multiply: int = 10
+var current_health: int
+var holding_player: Node3D = null # Se asigna desde player.gd [cite: 17]
+var last_thrower: Node3D = null # Se asigna desde player.gd [cite: 17]
 
-func _ready():
-	add_to_group(&"Grabbable")
-	# Activamos la detección de contactos por código para asegurarnos de que no se nos olvida en el editor
+func _ready() -> void:
+	add_to_group("Grabbable")
+	current_health = max_health
+	
 	contact_monitor = true
 	max_contacts_reported = 1
 	body_entered.connect(_on_body_entered)
 
-func _process(_delta: float) -> void:
-	if holding_player:
-		freeze = true 
-		var hold_pos = holding_player.get_node("%HoldPosition")
-		global_transform = hold_pos.global_transform
-
+func _physics_process(delta: float) -> void:
+	# Si un jugador lo tiene en la mano, congelamos físicas y lo pegamos a su posición
+	if holding_player != null and is_instance_valid(holding_player):
+		freeze = true
+		global_transform = holding_player.hold_position.global_transform
+		
 func _on_body_entered(body: Node) -> void:
-	# Solo el servidor procesa el daño
 	if not multiplayer.is_server(): return
+
+	var impact_force = linear_velocity.length()
 	
-	if body is CharacterBody3D and body.is_in_group(&"Players"):
-		if linear_velocity.length() >= 0.1:
-			body.rpc(&"receive_damage", linear_velocity.length()*damage_multiply)
+	if body is RigidBody3D:
+		impact_force += body.linear_velocity.length()
+	elif body is CharacterBody3D:
+		impact_force += body.velocity.length()
+
+	# Ignoramos golpes muy suaves
+	if impact_force > 2.0:
+		if body.has_method("receive_damage") and body != holding_player:
+			var final_damage = int(impact_force * damage_multiply)
+			# Como receive_damage es un RPC, lo llamamos a través de la red
+			body.rpc("receive_damage", final_damage)
+			print("[DAMAGE DEALT TO PLAYER]: ", final_damage)
+
+		# 2. RECIBIR DAÑO EL PROPIO OBJETO (Solo si no es indestructible)
+		if max_health > 0:
+			_take_damage(int(impact_force))
+			print("[TAKEN DAMAGE]: ", impact_force)
+
+func _take_damage(amount: int) -> void:
+	current_health -= amount
+	
+	if current_health <= 0:
+		rpc("destroy_object")
+
+@rpc("call_local", "reliable")
+func destroy_object() -> void:
+	if multiplayer.is_server():
+		Network.destroyed_objects.append(get_path())
+	queue_free()

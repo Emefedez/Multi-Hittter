@@ -32,6 +32,7 @@ properties/1/replication_mode = 1
 [node name="Ball" type="RigidBody3D" unique_id=1421737233]
 mass = 3.0
 script = ExtResource("1_p5dnn")
+damage_multiply = 5
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1022076943]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)

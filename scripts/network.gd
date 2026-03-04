@@ -7,8 +7,8 @@ var PORT = 9999
 var IP_ADDRESS = '127.0.0.1'
 var local_player_name := ""
 
-# NUEVO: Diccionario para mapear peer_id -> index (0, 1, 2, 3...)
 var assigned_indices: Dictionary = {}
+var destroyed_objects: Array[NodePath] = []
 
 # Función para encontrar el primer índice libre
 func _get_first_free_index() -> int:
@@ -46,6 +46,7 @@ func add_player(peer_id: int):
 		var idx = _get_first_free_index()
 		assigned_indices[peer_id] = idx
 		print("Servidor asigna Índice ", idx, " al Peer ", peer_id)
+		rpc_id(peer_id, "sync_late_join_objects", destroyed_objects) #actualizamos estado de objetos
 	
 	var new_player = PLAYER.instantiate()
 	new_player.name = str(peer_id)
@@ -73,3 +74,19 @@ func leave_server():
 	multiplayer.multiplayer_peer = null
 	assigned_indices.clear()
 	get_tree().reload_current_scene()
+
+@rpc("any_peer", "reliable")
+func request_late_join_objects() -> void:
+	# El cliente que acaba de cargar el mapa pide la lista.
+	# Solo el servidor responde.
+	if multiplayer.is_server():
+		var sender = multiplayer.get_remote_sender_id()
+		rpc_id(sender, "sync_late_join_objects", destroyed_objects)
+
+@rpc("reliable")
+func sync_late_join_objects(paths: Array[NodePath]) -> void:
+	# El cliente recibe la lista y destruye los objetos que ya no deberían existir
+	for path in paths:
+		var obj = get_node_or_null(path)
+		if obj:
+			obj.queue_free()

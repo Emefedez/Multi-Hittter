@@ -198,19 +198,21 @@ func sync_held_ball(ball_path: NodePath):
 func sync_drop_ball():
 	if held_ball:
 		# Modificaciones de físicas aplazadas
-		held_ball.call_deferred("add_collision_exception_with", self)
+		held_ball.call_deferred("add_collision_exception_with", self) 
 		held_ball.set_deferred("continuous_cd", true) 
-		held_ball.set_deferred("collision_layer", 1)
-		held_ball.set_deferred("collision_mask", 1)
+		held_ball.set_deferred("collision_layer", 1) 
+		held_ball.set_deferred("collision_mask", 1) 
 		
-		held_ball.set("holding_player", null)
+		held_ball.set("holding_player", null) 
 		
 		# --- QUITAR OUTLINE A LA PELOTA ---
-		var meshes = held_ball.find_children("*", "MeshInstance3D")
-		for m in meshes:
-			m.material_overlay = null
+		var meshes = held_ball.find_children("*", "MeshInstance3D") 
+		for m in meshes: 
+			m.material_overlay = null 
 			
-	held_ball = null
+		_remove_exception_delayed(held_ball)
+			
+	held_ball = null 
 	object_in_hand = false
 	
 @rpc("any_peer", "call_local", "reliable")
@@ -462,6 +464,12 @@ func _throw_ball():
 	if held_ball == null: return
 	var throw_dir = -camera_3d.global_transform.basis.z.normalized()
 	rpc_id(1, &"server_throw", throw_dir, velocity)
+	
+func _remove_exception_delayed(ball: RigidBody3D) -> void:
+	# Esperamos un tercio de segundo antes de restaurar la colisión
+	await get_tree().create_timer(0.3).timeout
+	if is_instance_valid(ball):
+		ball.call_deferred("remove_collision_exception_with", self)
 	
 func _die():
 	if not is_multiplayer_authority(): return
