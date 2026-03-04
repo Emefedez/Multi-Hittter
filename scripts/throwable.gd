@@ -3,6 +3,10 @@ extends RigidBody3D
 @export var max_health: int = 0 ## 0 significa indestructible (vida infinita)
 @export var damage_multiply: int = 1 ## Multiplicador de daño al golpear jugadores u otras cosas
 
+var cooldown: int = 0 #cooldown until damage can happen to the item
+var cooldown_wait: int = 50 #miliseconds
+
+
 var current_health: int
 var holding_player: Node3D = null # Se asigna desde player.gd [cite: 17]
 var last_thrower: Node3D = null # Se asigna desde player.gd [cite: 17]
@@ -28,12 +32,13 @@ func _on_body_entered(body: Node) -> void:
 	
 	if body is RigidBody3D:
 		impact_force += body.linear_velocity.length()
+		cooldown = Time.get_ticks_msec()
 	elif body is CharacterBody3D:
 		impact_force += body.velocity.length()
 
 	# Ignoramos golpes muy suaves
 	if impact_force > 2.0:
-		if body.has_method("receive_damage") and body != holding_player:
+		if body.has_method("receive_damage") and body != holding_player and (Time.get_ticks_msec() > cooldown + cooldown_wait):
 			var final_damage = int(impact_force * damage_multiply)
 			# Como receive_damage es un RPC, lo llamamos a través de la red
 			body.rpc("receive_damage", final_damage)
