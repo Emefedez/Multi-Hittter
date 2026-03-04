@@ -46,6 +46,7 @@ properties/1/replication_mode = 1
 
 [node name="pot" type="RigidBody3D" unique_id=1421737233]
 mass = 6.0
+gravity_scale = 2.0
 inertia = Vector3(0, 10, 0)
 script = ExtResource("1_366du")
 max_health = 20
