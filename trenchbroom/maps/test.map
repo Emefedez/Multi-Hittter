@@ -19,6 +19,6 @@
 // entity 1
 {
 "classname" "ball"
-"origin" "-392 312 6"
+"origin" "-72 8 10"
 "angle" "0"
 }
