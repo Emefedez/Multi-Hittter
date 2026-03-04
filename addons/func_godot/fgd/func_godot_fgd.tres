@@ -10,7 +10,8 @@
 [ext_resource type="Resource" uid="uid://dg5x44cc7flew" path="res://addons/func_godot/fgd/func_illusionary.tres" id="4_c4ucw"]
 [ext_resource type="Resource" uid="uid://ch3e0dix85uhb" path="res://addons/func_godot/fgd/func_detail_illusionary.tres" id="5_b2q3p"]
 [ext_resource type="Resource" uid="uid://to4v71xngqy0" path="res://trenchbroom/entities/ball.tres" id="9_ohl22"]
+[ext_resource type="Resource" uid="uid://b24aexkmgjti0" path="res://trenchbroom/entities/pot.tres" id="10_a2pra"]
 
 [resource]
 script = ExtResource("1_axt3h")
-entity_definitions = Array[Resource]([ExtResource("1_ehab8"), ExtResource("2_7jebp"), ExtResource("3_h5cmk"), ExtResource("2_ri2rx"), ExtResource("3_7jigp"), ExtResource("3_fqfww"), ExtResource("5_b2q3p"), ExtResource("4_c4ucw"), ExtResource("9_ohl22")])
+entity_definitions = Array[Resource]([ExtResource("1_ehab8"), ExtResource("2_7jebp"), ExtResource("3_h5cmk"), ExtResource("2_ri2rx"), ExtResource("3_7jigp"), ExtResource("3_fqfww"), ExtResource("5_b2q3p"), ExtResource("4_c4ucw"), ExtResource("9_ohl22"), ExtResource("10_a2pra")])

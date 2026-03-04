@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://1dv3v0o6s220" path="res://scripts/throwable.gd" id="1_p5dnn"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_p5dnn"]
-radius = 1.0
+radius = 0.8
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_dtxv4"]
 load_path = "res://.godot/imported/texture_08.png-ff502ecbddb489604069015252e89c8c.s3tc.ctex"
@@ -18,8 +18,8 @@ heightmap_enabled = true
 
 [sub_resource type="SphereMesh" id="SphereMesh_epd6e"]
 material = SubResource("StandardMaterial3D_iadub")
-radius = 1.0
-height = 2.0
+radius = 0.8
+height = 1.6
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_dtxv4"]
 properties/0/path = NodePath(".:rotation")
@@ -34,9 +34,11 @@ mass = 3.0
 script = ExtResource("1_p5dnn")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1022076943]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = SubResource("SphereShape3D_p5dnn")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1663838341]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 mesh = SubResource("SphereMesh_epd6e")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1324123449]
