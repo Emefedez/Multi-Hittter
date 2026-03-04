@@ -72,6 +72,7 @@ shader_parameter/animation_speed = 20.0
 size = Vector3(5, 5, 5)
 
 [node name="Player" type="CharacterBody3D" unique_id=1633133632]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 script = ExtResource("1_8afob")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=981196690]

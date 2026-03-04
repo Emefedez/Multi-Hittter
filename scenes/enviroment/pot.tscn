@@ -53,10 +53,12 @@ damage_multiply = 25
 
 [node name="PotBox" type="CollisionShape3D" parent="." unique_id=1102039696]
 unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.9537169, -0.30070576, 0, 0.30070576, 0.9537169, 0.04943061, 0.5414705, -2.2357867)
 shape = SubResource("BoxShape3D_b86t0")
 
 [node name="PotMesh" type="MeshInstance3D" parent="." unique_id=1437152919]
 unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0.9537169, -0.30070576, 0, 0.30070576, 0.9537169, 0.04943061, 0.5414705, -2.2357867)
 mesh = SubResource("ArrayMesh_hkhoh")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1324123449]
