@@ -73,53 +73,53 @@ local_map_file = "uid://cb22mvfj5qixm"
 map_settings = ExtResource("5_1mqy5")
 metadata/_custom_type_script = "uid://cwu5cf7a0awcd"
 
-[node name="entity_0_worldspawn" type="StaticBody3D" parent="map" unique_id=1886406285]
+[node name="entity_0_worldspawn" type="StaticBody3D" parent="map" unique_id=776672465]
 collision_mask = 0
 
-[node name="entity_0_mesh_instance" type="MeshInstance3D" parent="map/entity_0_worldspawn" unique_id=623825790]
+[node name="entity_0_mesh_instance" type="MeshInstance3D" parent="map/entity_0_worldspawn" unique_id=2020772035]
 mesh = SubResource("ArrayMesh_fraob")
 
-[node name="entity_0_brush_0_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1644531539]
+[node name="entity_0_brush_0_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1405850677]
 shape = SubResource("ConvexPolygonShape3D_1mqy5")
 
-[node name="entity_0_brush_1_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=211472863]
+[node name="entity_0_brush_1_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1248729730]
 shape = SubResource("ConvexPolygonShape3D_jwjoq")
 
-[node name="entity_0_brush_2_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=777546779]
+[node name="entity_0_brush_2_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=353861251]
 shape = SubResource("ConvexPolygonShape3D_gkovm")
 
-[node name="entity_0_brush_3_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=947286854]
+[node name="entity_0_brush_3_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=180717505]
 shape = SubResource("ConvexPolygonShape3D_0gs7n")
 
-[node name="entity_0_brush_4_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1276618406]
+[node name="entity_0_brush_4_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=477939114]
 shape = SubResource("ConvexPolygonShape3D_j4qav")
 
-[node name="entity_0_brush_5_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1938467272]
+[node name="entity_0_brush_5_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1936211059]
 shape = SubResource("ConvexPolygonShape3D_q6cqs")
 
-[node name="entity_0_brush_6_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1327476939]
+[node name="entity_0_brush_6_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1967461812]
 shape = SubResource("ConvexPolygonShape3D_o0lxk")
 
-[node name="entity_0_brush_7_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1371405119]
+[node name="entity_0_brush_7_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=1724089026]
 shape = SubResource("ConvexPolygonShape3D_kjlyp")
 
-[node name="entity_0_brush_8_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=959300961]
+[node name="entity_0_brush_8_collision_shape" type="CollisionShape3D" parent="map/entity_0_worldspawn" unique_id=784100710]
 shape = SubResource("ConvexPolygonShape3D_b02hr")
 
 [node name="entity_1_pot" parent="map" unique_id=1421737233 instance=ExtResource("5_vcmar")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 15.729512, 0.3125, 0.9938085)
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 14.374375, 0.3125, 2.3377187)
 
-[node name="entity_2_ball" parent="map" unique_id=813248830 instance=ExtResource("3_615bs")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 2.1051369, 0.4375, -1.3439102)
+[node name="entity_2_ball" parent="map" unique_id=1524154754 instance=ExtResource("3_615bs")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.75, 0.4375, 0)
 
-[node name="entity_3_pot" parent="map" unique_id=673519744 instance=ExtResource("5_vcmar")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 19.58373, 0.3125, -4.848004)
+[node name="entity_3_pot" parent="map" unique_id=1103864783 instance=ExtResource("5_vcmar")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 18.228594, 0.3125, -3.5040936)
 
-[node name="entity_4_pot" parent="map" unique_id=1283375979 instance=ExtResource("5_vcmar")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 15.840606, 0.3125, -4.8455977)
+[node name="entity_4_pot" parent="map" unique_id=1949280122 instance=ExtResource("5_vcmar")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 14.485469, 0.3125, -3.5016875)
 
-[node name="entity_5_pot" parent="map" unique_id=1638448739 instance=ExtResource("5_vcmar")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 19.737886, 0.3125, 0.97313666)
+[node name="entity_5_pot" parent="map" unique_id=1250058487 instance=ExtResource("5_vcmar")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 20.88275, 0.3125, -0.6829531)
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=583773023]
 transform = Transform3D(1, 0, 0, 0, 0.9441523, 0.32950938, 0, -0.32950938, 0.9441523, 0, 5.6924973, 27.135136)

@@ -38,7 +38,7 @@ damage_multiply = 5
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = SubResource("SphereShape3D_p5dnn")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1663838341]
+[node name="Model" type="MeshInstance3D" parent="." unique_id=1663838341]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 mesh = SubResource("SphereMesh_epd6e")
 

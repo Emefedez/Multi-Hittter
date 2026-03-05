@@ -1,0 +1,12 @@
+OS:	macOS Tahoe (26.2)
+Qt:	6.9.3
+GL_VENDOR:	Apple
+GL_RENDERER:	Apple M1 Max
+GL_VERSION:	2.1 Metal - 90.5
+TrenchBroom Version:	2025.4
+TrenchBroom Build:	v2025.4 Release macOS
+Reason:	SIGSEGV
+Stack trace:
+0   ???                                 0x000000016b4118a8 0x0 + 6094395560
+1   ???                                 0x000000016b411b18 0x0 + 6094396184
+

@@ -1,0 +1,18 @@
+Adding file system path "/Applications/TrenchBroom.app/Contents/Resources/defaults/assets"
+Adding file system path "/Users/m1-max/Documents/GAMEDEV/Multi-Hittter/"
+Loading document from /Users/m1-max/Documents/GAMEDEV/Multi-Hittter/trenchbroom/maps/test.map
+Found 0 shaders
+Adding file system path "/Applications/TrenchBroom.app/Contents/Resources/defaults/assets"
+Adding file system path "/Users/m1-max/Documents/GAMEDEV/Multi-Hittter/"
+Adding file system path "/Users/m1-max/Documents/GAMEDEV/Multi-Hittter/assets"
+Adding file system path "/Users/m1-max/Documents/GAMEDEV/Multi-Hittter/trenchbroom"
+Duplicate class info 'ball' (at FileLocation{line: 38, column: 13})
+Duplicate class info 'pot' (at FileLocation{line: 40, column: 13})
+Loaded entity definition file Multi-Hitter.fgd
+Found 0 shaders
+Loaded "/Users/m1-max/Documents/GAMEDEV/Multi-Hittter/trenchbroom/maps/test.map" in 14ms
+Saved "/Users/m1-max/Documents/GAMEDEV/Multi-Hittter/trenchbroom/maps/test.map" in 3ms
+Reloading entity definitions
+Duplicate class info 'ball' (at FileLocation{line: 38, column: 13})
+Duplicate class info 'pot' (at FileLocation{line: 40, column: 13})
+Loaded entity definition file Multi-Hitter.fgd
