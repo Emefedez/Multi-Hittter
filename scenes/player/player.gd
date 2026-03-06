@@ -153,6 +153,8 @@ func request_flash(color: Color, intensity: float, time_ms: float):
 
 @rpc("any_peer", "call_local", "reliable")
 func remote_flash_model(color: Color, intensity: float, time_ms: float):
+	if is_instance_valid(character_model):
+		character_model.flash_theme(color, intensity, time_ms)
 	if base_material:
 		var tint = Color(color.r, color.g, color.b, intensity)
 		base_material.set_shader_parameter(SN_FLASH_COLOR, tint)
@@ -255,8 +257,8 @@ func _apply_character_model_theme(theme_color: Color) -> void:
 
 	if unique_outline_mat:
 		model_outline_mat = unique_outline_mat.duplicate()
-		model_outline_mat.set_shader_parameter("outline_thickness", 0.00012)
-		model_outline_mat.set_shader_parameter("color", theme_color.darkened(0.45))
+		model_outline_mat.set_shader_parameter("outline_thickness", 0.0003)
+		model_outline_mat.set_shader_parameter("color", theme_color)
 
 	character_model.apply_theme(theme_color, model_outline_mat)
 	
@@ -286,9 +288,13 @@ func _make_outline_unique():
 func set_outline_color(new_color: Color, time_ms: float = 0.0):
 	if unique_outline_mat:
 		unique_outline_mat.set_shader_parameter(SN_COLOR, new_color)
-		if time_ms > 0.0:
-			await get_tree().create_timer(time_ms / 1000.0).timeout
-			reset_outline_color()
+	if is_instance_valid(character_model):
+		if model_outline_mat == null and unique_outline_mat:
+			_apply_character_model_theme(base_outline_color if base_outline_color else Color.WHITE)
+		character_model.set_outline_color(new_color)
+	if time_ms > 0.0:
+		await get_tree().create_timer(time_ms / 1000.0).timeout
+		reset_outline_color()
 
 func reset_outline_color():
 	set_outline_color(base_outline_color if base_outline_color else Color.WHITE)

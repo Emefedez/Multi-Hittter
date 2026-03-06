@@ -132,7 +132,7 @@ transform = Transform3D(1, -5.3290705e-15, 1.7763568e-14, 0, 0.99999946, -4.7767
 
 [node name="Nameplate" type="Label3D" parent="." unique_id=417190049]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.213971, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8806376, 0)
 billboard = 2
 no_depth_test = true
 render_priority = 1
@@ -145,6 +145,12 @@ unique_name_in_owner = true
 head_look_weight = 0.2
 arm_swing_degrees = 32.524
 forearm_swing_degrees = 30.6
+hand_target_pull = 0.65
+hand_max_reach = 1.0
+air_leg_lift_degrees = 12.0
+air_arm_lift_degrees = 38.026
+air_forearm_bend_degrees = 51.445
+airborne_cycle_speed = 9.527
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1069250703]
 replication_config = SubResource("SceneReplicationConfig_8afob")

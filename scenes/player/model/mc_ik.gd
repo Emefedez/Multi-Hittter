@@ -41,6 +41,7 @@ var left_hand_target: Node3D = null
 @export_range(0.0, 25.0) var root_tilt_degrees: float = 7.5
 @export_range(0.0, 25.0) var spine_tilt_degrees: float = 10.0
 @export_range(0.1, 30.0) var locomotion_smoothing: float = 12.0
+@export_range(0.1, 30.0) var limb_pose_smoothing: float = 10.0
 @export_range(0.0, 60.0) var arm_swing_degrees: float = 22.0
 @export_range(0.0, 45.0) var forearm_swing_degrees: float = 16.0
 @export_range(0.0, 60.0) var leg_swing_degrees: float = 28.0
@@ -52,10 +53,17 @@ var left_hand_target: Node3D = null
 @export_range(0.0, 0.5) var fall_stretch_amount: float = 0.1
 @export_range(0.0, 0.5) var landing_squash_amount: float = 0.16
 @export_range(0.1, 30.0) var landing_recover_speed: float = 10.0
-@export_range(0.1, 2.0) var hand_target_pull: float = 0.55
-@export_range(0.1, 2.0) var hand_max_reach: float = 0.85
-@export var right_hand_hold_offset: Vector3 = Vector3(-0.22, -0.12, -0.28)
-@export var left_hand_hold_offset: Vector3 = Vector3(0.22, -0.12, -0.28)
+@export_range(0.1, 2.0) var hand_target_pull: float = 1.0
+@export_range(0.1, 2.0) var hand_max_reach: float = 1.2
+@export_range(-0.5, 0.5) var hand_marker_depth_offset: float = -0.04
+@export var right_hand_hold_offset: Vector3 = Vector3(-0.06, -0.02, -0.04)
+@export var left_hand_hold_offset: Vector3 = Vector3(0.06, -0.02, -0.04)
+@export_range(0.0, 90.0) var air_leg_lift_degrees: float = 28.0
+@export_range(0.0, 90.0) var air_knee_bend_degrees: float = 42.0
+@export_range(0.0, 45.0) var landing_knee_bend_bonus_degrees: float = 14.0
+@export_range(0.0, 90.0) var air_arm_lift_degrees: float = 18.0
+@export_range(0.0, 90.0) var air_forearm_bend_degrees: float = 26.0
+@export_range(0.1, 10.0) var airborne_cycle_speed: float = 2.4
 
 var movement_velocity: Vector3 = Vector3.ZERO
 var movement_input: Vector2 = Vector2.ZERO
@@ -78,6 +86,9 @@ var is_grounded: bool = true
 
 var _body_meshes: Array[MeshInstance3D] = []
 var _mesh_base_materials: Dictionary = {}
+var _theme_color: Color = Color.WHITE
+var _flash_tint: Color = Color(1.0, 1.0, 1.0, 0.0)
+var _outline_material: Material = null
 
 # Índices de huesos cacheados
 var _head_bone: int = -1
@@ -107,6 +118,7 @@ var _right_leg_rest_quat: Quaternion
 
 var _base_transform: Transform3D
 var _gait_phase: float = 0.0
+var _airborne_time: float = 0.0
 var _previous_grounded: bool = true
 var _previous_vertical_velocity: float = 0.0
 var _landing_squash: float = 0.0
@@ -210,14 +222,14 @@ func _sync_ik_markers() -> void:
 
 	if use_right and _right_hand_ik_marker:
 		_right_hand_ik_marker.global_position = _get_reachable_hand_target(
-			right_hand_target.global_position,
+			right_hand_target,
 			_right_arm_bone,
 			right_hand_hold_offset
 		)
 
 	if use_left and _left_hand_ik_marker:
 		_left_hand_ik_marker.global_position  = _get_reachable_hand_target(
-			left_hand_target.global_position,
+			left_hand_target,
 			_left_arm_bone,
 			left_hand_hold_offset
 		)
@@ -257,6 +269,11 @@ func _apply_locomotion(delta: float) -> void:
 
 	if is_grounded and speed_ratio > 0.05:
 		_gait_phase += delta * bob_frequency * lerp(0.8, 1.8, speed_ratio)
+	if not is_grounded:
+		_airborne_time += delta * airborne_cycle_speed
+		_gait_phase += delta * bob_frequency * 0.22
+	else:
+		_airborne_time = 0.0
 
 	var bob_vertical := 0.0
 	var bob_side := 0.0
@@ -288,11 +305,11 @@ func _apply_locomotion(delta: float) -> void:
 		clampf(delta * locomotion_smoothing, 0.0, 1.0)
 	)
 
-	_apply_spine_locomotion(local_velocity, speed_ratio)
-	_apply_limb_locomotion(local_velocity, speed_ratio)
+	_apply_spine_locomotion(local_velocity, speed_ratio, delta)
+	_apply_limb_locomotion(local_velocity, speed_ratio, delta)
 
 
-func _apply_spine_locomotion(local_velocity: Vector3, speed_ratio: float) -> void:
+func _apply_spine_locomotion(local_velocity: Vector3, speed_ratio: float, delta: float) -> void:
 	if _spine2_bone < 0:
 		return
 
@@ -300,9 +317,10 @@ func _apply_spine_locomotion(local_velocity: Vector3, speed_ratio: float) -> voi
 	var roll := deg_to_rad(spine_tilt_degrees) * clampf(-local_velocity.x / maxf(locomotion_max_speed, 0.001), -1.0, 1.0)
 	var twist := deg_to_rad(spine_tilt_degrees * 0.35) * clampf(-movement_input.x, -1.0, 1.0)
 	var locomotion_quat := Quaternion.from_euler(Vector3(pitch * 0.45, twist * speed_ratio, roll * 0.75))
-	_skeleton.set_bone_pose_rotation(
+	_blend_bone_pose_rotation(
 		_spine2_bone,
-		_spine_rest_quat.slerp(_spine_rest_quat * locomotion_quat, speed_ratio)
+		_spine_rest_quat.slerp(_spine_rest_quat * locomotion_quat, speed_ratio),
+		delta
 	)
 
 
@@ -311,56 +329,85 @@ func _restore_spine_pose() -> void:
 		_skeleton.set_bone_pose_rotation(_spine2_bone, _spine_rest_quat)
 
 
-func _apply_limb_locomotion(_local_velocity: Vector3, speed_ratio: float) -> void:
+func _apply_limb_locomotion(_local_velocity: Vector3, speed_ratio: float, delta: float) -> void:
 	var stride := sin(_gait_phase)
 	var stride_opposite := sin(_gait_phase + PI)
 	var leg_amount := speed_ratio if is_grounded else 0.15
 	var arm_amount := speed_ratio if is_grounded else 0.1
+	if not is_grounded:
+		var jump_ratio := clampf(movement_velocity.y / 8.0, 0.0, 1.0)
+		var fall_ratio := clampf(abs(minf(movement_velocity.y, 0.0)) / 14.0, 0.0, 1.0)
+		var air_amount := clampf(0.55 + (jump_ratio * 0.25) + (fall_ratio * 0.35), 0.0, 1.0)
+		var air_phase := sin(_airborne_time)
+		var air_opposite_phase := sin(_airborne_time + PI * 0.55)
+		var landing_ratio := 0.0
+		if landing_squash_amount > 0.0:
+			landing_ratio = clampf(_landing_squash / landing_squash_amount, 0.0, 1.0)
+		var landing_bend := landing_ratio * landing_knee_bend_bonus_degrees
 
-	_apply_bone_swing(_left_up_leg_bone, _left_up_leg_rest_quat, stride, leg_swing_degrees, leg_amount, Vector3.RIGHT)
-	_apply_bone_swing(_right_up_leg_bone, _right_up_leg_rest_quat, stride_opposite, leg_swing_degrees, leg_amount, Vector3.RIGHT)
-	_apply_bone_swing(_left_leg_bone, _left_leg_rest_quat, maxf(0.0, -stride), calf_swing_degrees, leg_amount, Vector3.RIGHT)
-	_apply_bone_swing(_right_leg_bone, _right_leg_rest_quat, maxf(0.0, -stride_opposite), calf_swing_degrees, leg_amount, Vector3.RIGHT)
+		_apply_bone_swing(_left_up_leg_bone, _left_up_leg_rest_quat, 0.7 + (air_phase * 0.2), air_leg_lift_degrees + landing_bend, air_amount, Vector3.RIGHT, delta)
+		_apply_bone_swing(_right_up_leg_bone, _right_up_leg_rest_quat, 0.7 + (air_opposite_phase * 0.2), air_leg_lift_degrees + landing_bend, air_amount, Vector3.RIGHT, delta)
+		_apply_bone_swing(_left_leg_bone, _left_leg_rest_quat, 0.85 + (jump_ratio * 0.1), air_knee_bend_degrees + landing_bend, air_amount, Vector3.RIGHT, delta)
+		_apply_bone_swing(_right_leg_bone, _right_leg_rest_quat, 0.85 + (fall_ratio * 0.1), air_knee_bend_degrees + landing_bend, air_amount, Vector3.RIGHT, delta)
+
+		if not _left_arm_ik.active:
+			_apply_bone_swing(_left_arm_bone, _left_arm_rest_quat, 0.5 + (air_opposite_phase * 0.25), air_arm_lift_degrees, 0.55, Vector3.FORWARD, delta)
+			_apply_bone_swing(_left_forearm_bone, _left_forearm_rest_quat, 0.45 + (fall_ratio * 0.25), air_forearm_bend_degrees, 0.45, Vector3.FORWARD, delta)
+		if not _right_arm_ik.active:
+			_apply_bone_swing(_right_arm_bone, _right_arm_rest_quat, 0.5 + (air_phase * 0.25), air_arm_lift_degrees, 0.55, Vector3.FORWARD, delta)
+			_apply_bone_swing(_right_forearm_bone, _right_forearm_rest_quat, 0.45 + (fall_ratio * 0.25), air_forearm_bend_degrees, 0.45, Vector3.FORWARD, delta)
+		return
+
+	_apply_bone_swing(_left_up_leg_bone, _left_up_leg_rest_quat, stride, leg_swing_degrees, leg_amount, Vector3.RIGHT, delta)
+	_apply_bone_swing(_right_up_leg_bone, _right_up_leg_rest_quat, stride_opposite, leg_swing_degrees, leg_amount, Vector3.RIGHT, delta)
+	_apply_bone_swing(_left_leg_bone, _left_leg_rest_quat, maxf(0.0, -stride), calf_swing_degrees, leg_amount, Vector3.RIGHT, delta)
+	_apply_bone_swing(_right_leg_bone, _right_leg_rest_quat, maxf(0.0, -stride_opposite), calf_swing_degrees, leg_amount, Vector3.RIGHT, delta)
 
 	if not _left_arm_ik.active:
-		_apply_bone_swing(_left_arm_bone, _left_arm_rest_quat, stride_opposite, arm_swing_degrees, arm_amount, Vector3.FORWARD)
-		_apply_bone_swing(_left_forearm_bone, _left_forearm_rest_quat, maxf(0.0, -stride_opposite), forearm_swing_degrees, arm_amount, Vector3.FORWARD)
+		_apply_bone_swing(_left_arm_bone, _left_arm_rest_quat, stride_opposite, arm_swing_degrees, arm_amount, Vector3.FORWARD, delta)
+		_apply_bone_swing(_left_forearm_bone, _left_forearm_rest_quat, maxf(0.0, -stride_opposite), forearm_swing_degrees, arm_amount, Vector3.FORWARD, delta)
 	if not _right_arm_ik.active:
-		_apply_bone_swing(_right_arm_bone, _right_arm_rest_quat, stride, arm_swing_degrees, arm_amount, Vector3.FORWARD)
-		_apply_bone_swing(_right_forearm_bone, _right_forearm_rest_quat, maxf(0.0, -stride), forearm_swing_degrees, arm_amount, Vector3.FORWARD)
+		_apply_bone_swing(_right_arm_bone, _right_arm_rest_quat, stride, arm_swing_degrees, arm_amount, Vector3.FORWARD, delta)
+		_apply_bone_swing(_right_forearm_bone, _right_forearm_rest_quat, maxf(0.0, -stride), forearm_swing_degrees, arm_amount, Vector3.FORWARD, delta)
 
 	if speed_ratio <= 0.05 and is_grounded:
-		_restore_limb_pose(false)
+		_restore_limb_pose(false, delta)
 
 
-func _apply_bone_swing(bone_idx: int, rest_quat: Quaternion, phase_value: float, degrees_amount: float, weight: float, axis: Vector3) -> void:
+func _apply_bone_swing(bone_idx: int, rest_quat: Quaternion, phase_value: float, degrees_amount: float, weight: float, axis: Vector3, delta: float) -> void:
 	if bone_idx < 0:
 		return
 
 	var swing_quat := Quaternion(axis.normalized(), deg_to_rad(degrees_amount) * phase_value)
-	_skeleton.set_bone_pose_rotation(bone_idx, rest_quat.slerp(rest_quat * swing_quat, clampf(weight, 0.0, 1.0)))
+	var target_rotation := rest_quat.slerp(rest_quat * swing_quat, clampf(weight, 0.0, 1.0))
+	_blend_bone_pose_rotation(bone_idx, target_rotation, delta)
 
 
-func _restore_limb_pose(force_arms: bool = true) -> void:
+func _restore_limb_pose(force_arms: bool = true, delta: float = 1.0) -> void:
 	if force_arms or not _left_arm_ik.active:
-		_restore_bone_pose(_left_arm_bone, _left_arm_rest_quat)
-		_restore_bone_pose(_left_forearm_bone, _left_forearm_rest_quat)
+		_restore_bone_pose(_left_arm_bone, _left_arm_rest_quat, delta)
+		_restore_bone_pose(_left_forearm_bone, _left_forearm_rest_quat, delta)
 	if force_arms or not _right_arm_ik.active:
-		_restore_bone_pose(_right_arm_bone, _right_arm_rest_quat)
-		_restore_bone_pose(_right_forearm_bone, _right_forearm_rest_quat)
-	_restore_bone_pose(_left_up_leg_bone, _left_up_leg_rest_quat)
-	_restore_bone_pose(_right_up_leg_bone, _right_up_leg_rest_quat)
-	_restore_bone_pose(_left_leg_bone, _left_leg_rest_quat)
-	_restore_bone_pose(_right_leg_bone, _right_leg_rest_quat)
+		_restore_bone_pose(_right_arm_bone, _right_arm_rest_quat, delta)
+		_restore_bone_pose(_right_forearm_bone, _right_forearm_rest_quat, delta)
+	_restore_bone_pose(_left_up_leg_bone, _left_up_leg_rest_quat, delta)
+	_restore_bone_pose(_right_up_leg_bone, _right_up_leg_rest_quat, delta)
+	_restore_bone_pose(_left_leg_bone, _left_leg_rest_quat, delta)
+	_restore_bone_pose(_right_leg_bone, _right_leg_rest_quat, delta)
 
 
-func _get_reachable_hand_target(target_world_pos: Vector3, arm_bone_idx: int, hold_offset: Vector3) -> Vector3:
+func _get_reachable_hand_target(target_node: Node3D, arm_bone_idx: int, hold_offset: Vector3) -> Vector3:
+	if target_node == null:
+		return Vector3.ZERO
 	if arm_bone_idx < 0:
-		return target_world_pos
+		return target_node.global_position
 
 	var shoulder_world := _get_bone_world_position(arm_bone_idx)
-	var adjusted_target := shoulder_world.lerp(target_world_pos, clampf(hand_target_pull, 0.0, 1.0))
-	adjusted_target += global_transform.basis.orthonormalized() * hold_offset
+	var target_basis := target_node.global_transform.basis.orthonormalized()
+	var adjusted_offset := hold_offset
+	adjusted_offset.z = hand_marker_depth_offset
+	var desired_target := target_node.global_position + (target_basis * adjusted_offset)
+	var adjusted_target := shoulder_world.lerp(desired_target, clampf(hand_target_pull, 0.0, 1.0))
 
 	var to_target := adjusted_target - shoulder_world
 	if to_target.length() > hand_max_reach:
@@ -374,12 +421,48 @@ func _get_bone_world_position(bone_idx: int) -> Vector3:
 	return _skeleton.global_transform * bone_pose.origin
 
 
-func _restore_bone_pose(bone_idx: int, rest_quat: Quaternion) -> void:
+func _restore_bone_pose(bone_idx: int, rest_quat: Quaternion, delta: float = 1.0) -> void:
 	if bone_idx >= 0:
-		_skeleton.set_bone_pose_rotation(bone_idx, rest_quat)
+		_blend_bone_pose_rotation(bone_idx, rest_quat, delta)
+
+
+func _blend_bone_pose_rotation(bone_idx: int, target_rotation: Quaternion, delta: float) -> void:
+	if bone_idx < 0:
+		return
+	var current_rotation := _skeleton.get_bone_pose_rotation(bone_idx)
+	var blend_weight := clampf(delta * limb_pose_smoothing, 0.0, 1.0)
+	_skeleton.set_bone_pose_rotation(bone_idx, current_rotation.slerp(target_rotation, blend_weight))
 
 
 func apply_theme(theme_color: Color, outline_material: Material = null) -> void:
+	_theme_color = theme_color
+	_flash_tint = Color(1.0, 1.0, 1.0, 0.0)
+	_outline_material = outline_material
+	_refresh_themed_materials()
+
+
+func set_outline_material(outline_material: Material) -> void:
+	_outline_material = outline_material
+	for mesh_instance in _body_meshes:
+		mesh_instance.material_overlay = _outline_material
+
+
+func set_outline_color(outline_color: Color) -> void:
+	if _outline_material is ShaderMaterial:
+		(_outline_material as ShaderMaterial).set_shader_parameter("color", outline_color)
+	for mesh_instance in _body_meshes:
+		mesh_instance.material_overlay = _outline_material
+
+
+func flash_theme(color: Color, intensity: float, time_ms: float) -> void:
+	_flash_tint = Color(color.r, color.g, color.b, clampf(intensity, 0.0, 1.0))
+	_refresh_themed_materials()
+	await get_tree().create_timer(time_ms / 1000.0).timeout
+	_flash_tint = Color(1.0, 1.0, 1.0, 0.0)
+	_refresh_themed_materials()
+
+
+func _refresh_themed_materials() -> void:
 	for mesh_instance in _body_meshes:
 		var base_materials: Array = _mesh_base_materials.get(mesh_instance, [])
 		for surface_idx in range(base_materials.size()):
@@ -387,13 +470,16 @@ func apply_theme(theme_color: Color, outline_material: Material = null) -> void:
 			if base_material is StandardMaterial3D:
 				var source_material := base_material as StandardMaterial3D
 				var themed_material := source_material.duplicate() as StandardMaterial3D
-				themed_material.albedo_color = source_material.albedo_color.lerp(theme_color, 0.72)
+				var tinted_albedo := source_material.albedo_color.lerp(_theme_color, 0.72)
+				if _flash_tint.a > 0.0:
+					tinted_albedo = tinted_albedo.lerp(Color(_flash_tint.r, _flash_tint.g, _flash_tint.b, 1.0), _flash_tint.a)
+				themed_material.albedo_color = tinted_albedo
 				themed_material.emission_enabled = true
-				themed_material.emission = theme_color
-				themed_material.emission_energy_multiplier = 0.2
+				themed_material.emission = _theme_color.lerp(Color(_flash_tint.r, _flash_tint.g, _flash_tint.b, 1.0), minf(_flash_tint.a, 1.0))
+				themed_material.emission_energy_multiplier = 0.2 + (_flash_tint.a * 0.9)
 				themed_material.vertex_color_use_as_albedo = true
 				mesh_instance.set_surface_override_material(surface_idx, themed_material)
-		mesh_instance.material_overlay = outline_material
+		mesh_instance.material_overlay = _outline_material
 
 
 # ─────────────────────────────────────────────
