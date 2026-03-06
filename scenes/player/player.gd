@@ -21,6 +21,7 @@ extends CharacterBody3D
 # --- REFERENCIAS DE NODOS PARA AGARRAR ---
 @onready var hold_position: Marker3D = %HoldPosition
 @onready var pickup_area: Area3D = %PickupArea
+@onready var character_model: McIkModel = %CharacterModel
 
 var held_item: RigidBody3D = null
 
@@ -70,9 +71,14 @@ var object_in_hand: bool = false
 var unique_outline_mat: ShaderMaterial
 var base_outline_color: Color
 var base_material: ShaderMaterial 
+var model_outline_mat: ShaderMaterial
 
 # Si al final no la variamos, cacheamos la gravedad para no consultarla al motor en cada frame
 var gravity_vec: Vector3 = ProjectSettings.get_setting("physics/3d/default_gravity_vector") * ProjectSettings.get_setting("physics/3d/default_gravity")
+var _visual_last_position: Vector3
+var visual_velocity_sync: Vector3 = Vector3.ZERO
+var visual_input_sync: Vector2 = Vector2.ZERO
+var visual_grounded_sync: bool = true
 
 # --- OPTIMIZACIÓN DE STRINGS ---
 # El uso de &"string" (StringName) es más rápido para parámetros de shaders
@@ -87,6 +93,8 @@ func _ready():
 	add_to_group(&"Players")
 	menu.hide()
 	interact_text.hide()
+	_visual_last_position = global_position
+	_connect_character_model_ik()
 	
 	if is_multiplayer_authority():
 		camera_3d.current = true
@@ -102,7 +110,6 @@ func _ready():
 		else:
 			rpc_id(1, &"register_player_data", my_name)
 	else:
-		set_process(false)
 		set_physics_process(false)
 		speed_lines.hide()
 		canvas_layer.hide()
@@ -139,6 +146,7 @@ func sync_player_data(idx: int, p_name: String):
 	
 	nameplate.text = str(idx + 1) + ". " + custom_name
 	reset_outline_color()
+	_apply_character_model_theme(base_outline_color)
 
 func request_flash(color: Color, intensity: float, time_ms: float):
 	rpc(&"remote_flash_model", color, intensity, time_ms)
@@ -193,6 +201,10 @@ func sync_held_item(item_path: NodePath):
 		for m in meshes:
 			m.material_overlay = unique_outline_mat
 
+		if is_instance_valid(character_model):
+			character_model.right_hand_target = hold_position
+			character_model.left_hand_target = hold_position
+
 
 @rpc("any_peer", "call_local", "reliable")
 func sync_drop_item():
@@ -211,9 +223,42 @@ func sync_drop_item():
 			m.material_overlay = null 
 			
 		_remove_exception_delayed(held_item)
+
+	if is_instance_valid(character_model):
+		character_model.right_hand_target = null
+		character_model.left_hand_target = null
 			
 	held_item = null 
 	object_in_hand = false
+
+
+func _connect_character_model_ik() -> void:
+	if not is_instance_valid(character_model):
+		return
+
+	character_model.look_target = camera_3d
+	character_model.right_hand_target = hold_position if held_item else null
+	character_model.left_hand_target = hold_position if held_item else null
+	character_model.set_locomotion_state(velocity, is_on_floor(), Vector2.ZERO)
+
+
+func _update_character_model_state(input_dir: Vector2) -> void:
+	if not is_instance_valid(character_model):
+		return
+
+	character_model.set_locomotion_state(velocity, is_on_floor(), input_dir)
+
+
+func _apply_character_model_theme(theme_color: Color) -> void:
+	if not is_instance_valid(character_model):
+		return
+
+	if unique_outline_mat:
+		model_outline_mat = unique_outline_mat.duplicate()
+		model_outline_mat.set_shader_parameter("outline_thickness", 0.00012)
+		model_outline_mat.set_shader_parameter("color", theme_color.darkened(0.45))
+
+	character_model.apply_theme(theme_color, model_outline_mat)
 	
 @rpc("any_peer", "call_local", "reliable")
 func receive_damage(amount: int):
@@ -305,6 +350,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		spring_arm.rotation.x = clamp(spring_arm.rotation.x - event.relative.y * sensitivity, -1.57, 1.57)
 		
 func _process(_delta: float) -> void:
+	_update_remote_character_model_state(_delta)
+
+	if not is_multiplayer_authority():
+		return
+
 	if Input.is_action_just_pressed(&"menu"):
 		if menu.visible:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -312,6 +362,29 @@ func _process(_delta: float) -> void:
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 			menu.show()
+
+
+func _update_remote_character_model_state(delta: float) -> void:
+	if not is_instance_valid(character_model) or delta <= 0.0:
+		return
+
+	var visual_velocity := velocity
+	var grounded := is_on_floor()
+	var visual_input := Vector2.ZERO
+	if not is_multiplayer_authority():
+		visual_velocity = visual_velocity_sync
+		grounded = visual_grounded_sync
+		visual_input = visual_input_sync
+
+	_visual_last_position = global_position
+
+	if is_multiplayer_authority():
+		var local_velocity := global_transform.basis.inverse() * visual_velocity
+		visual_input = Vector2(local_velocity.x, local_velocity.z)
+		if visual_input.length() > 1.0:
+			visual_input = visual_input.normalized()
+
+	character_model.set_locomotion_state(visual_velocity, grounded, visual_input)
 
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority(): return
@@ -448,6 +521,10 @@ func _physics_process(delta: float) -> void:
 	var pre_velocity = velocity	
 	move_and_slide()
 	_push_away_rigid_bodies(pre_velocity)
+	visual_velocity_sync = velocity
+	visual_input_sync = input_dir
+	visual_grounded_sync = is_on_floor()
+	_update_character_model_state(input_dir)
 
 #####################################
 

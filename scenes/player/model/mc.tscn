@@ -1,5 +1,7 @@
 [gd_scene format=4 uid="uid://csats1jlw7bfa"]
 
+[ext_resource type="Script" uid="uid://cgpkdxdpyjr58" path="res://scenes/player/model/mc_ik.gd" id="1_mc_ik"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3agt7"]
 resource_name = "UDIM.Skin"
 vertex_color_use_as_albedo = true
@@ -291,6 +293,8 @@ bind/51/bone = -1
 bind/51/pose = Transform3D(-0.9624632, -0.005080729, 0.27136478, 0.00091102027, -0.9998795, -0.015489406, 0.27141073, -0.014660705, 0.9623519, -0.0013510232, -0.001190839, 0.00047808397)
 
 [node name="PlayerModel" type="Node3D" unique_id=297504002]
+transform = Transform3D(-6.556708e-08, 0, 1.5, 0, 1.5, 0, -1.5, 0, -6.556708e-08, 0, 0, 0)
+script = ExtResource("1_mc_ik")
 
 [node name="Skeleton3D" type="Skeleton3D" parent="." unique_id=148914448]
 transform = Transform3D(100, 0, 0, 0, -1.1920929e-05, 99.99999, 0, -99.99999, -1.1920929e-05, 0, 0, 0)
@@ -755,18 +759,47 @@ mesh = SubResource("ArrayMesh_6ffx0")
 skin = SubResource("Skin_x8eic")
 skeleton = NodePath("..")
 
-[node name="CCDIK3D" type="CCDIK3D" parent="Skeleton3D" unique_id=807459358]
-transform = Transform3D(0.010000002, 0, 0, 0, -1.1920934e-09, -0.010000003, 0, 0.010000003, -1.1920934e-09, 0, -1.1210005e-09, 0.009403633)
+[node name="RightArmIK" type="CCDIK3D" parent="Skeleton3D" unique_id=807459358]
+transform = Transform3D(1, -7.1054274e-15, -4.2351647e-22, 0, 1, 2.2777146e-22, 0, 2.2777148e-22, 1, -0.0065531568, -1.0324698e-09, 0.01106388)
+active = false
 setting_count = 1
-settings/0/target_node = NodePath("../../Marker3D")
-settings/0/root_bone_name = "mixamorig_Hips"
-settings/0/root_bone = 0
-settings/0/end_bone_name = "mixamorig_Hips"
-settings/0/end_bone = 0
+settings/0/target_node = NodePath("../../RightHandIKTarget")
+settings/0/root_bone_name = "mixamorig_RightArm"
+settings/0/root_bone = 32
+settings/0/end_bone_name = "mixamorig_RightHand"
+settings/0/end_bone = 34
 settings/0/extend_end_bone = false
-settings/0/joint_count = 1
+settings/0/joint_count = 3
 settings/0/joints/0/rotation_axis = 3
 settings/0/joints/0/limitation = null
+settings/0/joints/1/rotation_axis = 3
+settings/0/joints/1/limitation = null
+settings/0/joints/2/rotation_axis = 3
+settings/0/joints/2/limitation = null
 
-[node name="Marker3D" type="Marker3D" parent="." unique_id=281051428]
+[node name="LeftArmIK" type="CCDIK3D" parent="Skeleton3D" unique_id=123456789]
+transform = Transform3D(1, -7.1054274e-15, -4.2351647e-22, 0, 1, 2.2777146e-22, 0, 2.2777146e-22, 1, 0.006942407, -1.553979e-09, 0.010490093)
+active = false
+setting_count = 1
+settings/0/target_node = NodePath("../../LeftHandIKTarget")
+settings/0/root_bone_name = "mixamorig_LeftArm"
+settings/0/root_bone = 8
+settings/0/end_bone_name = "mixamorig_LeftHand"
+settings/0/end_bone = 10
+settings/0/extend_end_bone = false
+settings/0/joint_count = 3
+settings/0/joints/0/rotation_axis = 3
+settings/0/joints/0/limitation = null
+settings/0/joints/1/rotation_axis = 3
+settings/0/joints/1/limitation = null
+settings/0/joints/2/rotation_axis = 3
+settings/0/joints/2/limitation = null
+
+[node name="RightHandIKTarget" type="Marker3D" parent="." unique_id=281051428]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5611534, 0.9833053, -0.032789946)
+
+[node name="LeftHandIKTarget" type="Marker3D" parent="." unique_id=246813579]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5611534, 0.9833053, -0.032789946)
+
+[node name="HeadLookTarget" type="Marker3D" parent="." unique_id=369258147]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -2)

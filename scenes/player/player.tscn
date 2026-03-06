@@ -6,6 +6,7 @@
 [ext_resource type="Shader" uid="uid://joirl2ussjmw" path="res://scenes/player/empty.gdshader" id="3_0owmy"]
 [ext_resource type="Script" uid="uid://buwkir1viskug" path="res://scenes/player/quad_resize.gd" id="3_gmlin"]
 [ext_resource type="Shader" uid="uid://bqf4w31qswtlv" path="res://shaders/speed_lines.gdshader" id="4_lvxji"]
+[ext_resource type="PackedScene" uid="uid://csats1jlw7bfa" path="res://scenes/player/model/mc.tscn" id="5_mc_model"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_x7p2l"]
 
@@ -48,6 +49,15 @@ properties/0/replication_mode = 1
 properties/1/path = NodePath(".:rotation")
 properties/1/spawn = true
 properties/1/replication_mode = 1
+properties/2/path = NodePath(".:visual_velocity_sync")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:visual_input_sync")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:visual_grounded_sync")
+properties/4/spawn = true
+properties/4/replication_mode = 1
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_p47bc"]
 noise_type = 5
@@ -78,6 +88,7 @@ script = ExtResource("1_8afob")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=981196690]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
 shape = SubResource("CapsuleShape3D_x7p2l")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="CollisionShape3D" unique_id=1306409986]
@@ -91,6 +102,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Head" unique_id=227085375]
 transform = Transform3D(4.371139e-08, 1, -8.742278e-08, 1, -4.371139e-08, 0, -3.821371e-15, -8.742278e-08, -1, 0.21437211, 0.5, 0)
+visible = false
 layers = 2
 mesh = SubResource("CylinderMesh_x7p2l")
 
@@ -127,6 +139,12 @@ render_priority = 1
 outline_render_priority = 1
 text = "Peer ID"
 outline_size = 2
+
+[node name="CharacterModel" parent="." unique_id=2116148990 instance=ExtResource("5_mc_model")]
+unique_name_in_owner = true
+head_look_weight = 0.2
+arm_swing_degrees = 32.524
+forearm_swing_degrees = 30.6
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1069250703]
 replication_config = SubResource("SceneReplicationConfig_8afob")
