@@ -22,7 +22,7 @@ extends CharacterBody3D
 @onready var hold_position: Marker3D = %HoldPosition
 @onready var pickup_area: Area3D = %PickupArea
 
-var held_ball: RigidBody3D = null
+var held_item: RigidBody3D = null
 
 # --- CONSTANTES ---
 const PLAYER_COLORS = [
@@ -152,67 +152,67 @@ func remote_flash_model(color: Color, intensity: float, time_ms: float):
 		base_material.set_shader_parameter(SN_FLASH_COLOR, Color(1, 1, 1, 0))
 
 @rpc("any_peer", "call_local", "reliable")
-func server_pickup(ball_path: NodePath):
+func server_pickup(item_path: NodePath):
 	if not multiplayer.is_server(): return
-	var ball = get_node_or_null(ball_path)
-	if ball and not ball.holding_player:
-		ball.holding_player = self
-		rpc(&"sync_held_ball", ball_path)
+	var item = get_node_or_null(item_path)
+	if item and not item.holding_player:
+		item.holding_player = self
+		rpc(&"sync_held_item", item_path)
 
 @rpc("any_peer", "call_local", "reliable")
 func server_throw(throw_dir: Vector3, player_vel: Vector3):
 	if not multiplayer.is_server(): return
-	if held_ball:
-		held_ball.freeze = false
+	if held_item:
+		held_item.freeze = false
 		var throw_force = 15.0
-		held_ball.linear_velocity = player_vel + (throw_dir * throw_force)
+		held_item.linear_velocity = player_vel + (throw_dir * throw_force)
 		
-		held_ball.set("last_thrower", self)
+		held_item.set("last_thrower", self)
 		
-		rpc(&"sync_drop_ball")
+		rpc(&"sync_drop_item")
 
 @rpc("any_peer", "call_local", "reliable")
-func sync_held_ball(ball_path: NodePath):
-	var ball = get_node_or_null(ball_path)
-	if ball:
-		held_ball = ball
+func sync_held_item(item_path: NodePath):
+	var item = get_node_or_null(item_path)
+	if item:
+		held_item = item
 		object_in_hand = true
 		
 		# Modificaciones de físicas aplazadas
-		held_ball.set_deferred("collision_layer", 0)
-		held_ball.set_deferred("collision_mask", 0)
+		held_item.set_deferred("collision_layer", 0)
+		held_item.set_deferred("collision_mask", 0)
 		
-		held_ball.set("holding_player", self) 
+		held_item.set("holding_player", self) 
 		
-		var sync_node = held_ball.get_node_or_null("MultiplayerSynchronizer")
+		var sync_node = held_item.get_node_or_null("MultiplayerSynchronizer")
 		if sync_node:
 			sync_node.process_mode = Node.PROCESS_MODE_DISABLED
 
 		# --- AÑADIR OUTLINE A LA PELOTA ---
-		var meshes = held_ball.find_children("*", "MeshInstance3D")
+		var meshes = held_item.find_children("*", "MeshInstance3D")
 		for m in meshes:
 			m.material_overlay = unique_outline_mat
 
 
 @rpc("any_peer", "call_local", "reliable")
-func sync_drop_ball():
-	if held_ball:
+func sync_drop_item():
+	if held_item:
 		# Modificaciones de físicas aplazadas
-		held_ball.call_deferred("add_collision_exception_with", self) 
-		held_ball.set_deferred("continuous_cd", true) 
-		held_ball.set_deferred("collision_layer", 1) 
-		held_ball.set_deferred("collision_mask", 1) 
+		held_item.call_deferred("add_collision_exception_with", self) 
+		held_item.set_deferred("continuous_cd", true) 
+		held_item.set_deferred("collision_layer", 1) 
+		held_item.set_deferred("collision_mask", 1) 
 		
-		held_ball.set("holding_player", null) 
+		held_item.set("holding_player", null) 
 		
 		# --- QUITAR OUTLINE A LA PELOTA ---
-		var meshes = held_ball.find_children("*", "MeshInstance3D") 
+		var meshes = held_item.find_children("*", "MeshInstance3D") 
 		for m in meshes: 
 			m.material_overlay = null 
 			
-		_remove_exception_delayed(held_ball)
+		_remove_exception_delayed(held_item)
 			
-	held_ball = null 
+	held_item = null 
 	object_in_hand = false
 	
 @rpc("any_peer", "call_local", "reliable")
@@ -423,10 +423,10 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0, DECELERATION * delta)
 		
 	if Input.is_action_just_pressed(&"interact"):
-		if held_ball == null:
+		if held_item == null:
 			_try_pickup()
 		else:
-			_throw_ball()
+			_throw_item()
 
 	# Actualización de UI
 	speed_label.text = "Speed: " + str(snapped(Vector2(velocity.x, velocity.z).length(), 0.1))
@@ -460,23 +460,23 @@ func _try_pickup():
 			interact_text.hide()
 			break
 			
-func _throw_ball():
-	if held_ball == null: return
+func _throw_item():
+	if held_item == null: return
 	var throw_dir = -camera_3d.global_transform.basis.z.normalized()
 	rpc_id(1, &"server_throw", throw_dir, velocity)
 	
-func _remove_exception_delayed(ball: RigidBody3D) -> void:
+func _remove_exception_delayed(item: RigidBody3D) -> void:
 	# Esperamos un tercio de segundo antes de restaurar la colisión
 	await get_tree().create_timer(0.3).timeout
-	if is_instance_valid(ball):
-		ball.call_deferred("remove_collision_exception_with", self)
+	if is_instance_valid(item):
+		item.call_deferred("remove_collision_exception_with", self)
 	
 func _die():
 	if not is_multiplayer_authority(): return
 	hp_label.value = 0
 	
-	if held_ball:
-		_throw_ball()
+	if held_item:
+		_throw_item()
 		
 	camera_3d.current = true
 	
